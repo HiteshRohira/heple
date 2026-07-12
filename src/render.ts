@@ -1,0 +1,340 @@
+import type { Block, Inline, PlanDocument, ThemeName } from "./schema.js";
+import { themeCss } from "./themes.js";
+
+export interface RenderOptions {
+  theme: ThemeName;
+  navigation?: boolean;
+}
+
+interface TocItem {
+  id: string;
+  title: string;
+  depth: number;
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function renderInline(inline: Inline): string {
+  switch (inline.type) {
+    case "text":
+      return escapeHtml(inline.text);
+    case "link":
+      return `<a href="${escapeHtml(inline.href)}">${escapeHtml(inline.text)}</a>`;
+    case "strong":
+      return `<strong>${escapeHtml(inline.text)}</strong>`;
+    case "emphasis":
+      return `<em>${escapeHtml(inline.text)}</em>`;
+    case "code":
+      return `<code>${escapeHtml(inline.text)}</code>`;
+    case "status":
+      return `<span class="badge status-${inline.value}">${escapeHtml(inline.value.replace("_", " "))}</span>`;
+    case "severity":
+      return `<span class="badge severity-${inline.value}">${escapeHtml(inline.value)}</span>`;
+  }
+}
+
+function renderInlineContent(content: Inline[]): string {
+  return content.map(renderInline).join("");
+}
+
+function renderFacts(items: Array<{ label: string; value: string }>, className = "facts"): string {
+  return `<div class="${className}">${items
+    .map(
+      ({ label, value }) =>
+        `<div class="fact"><span class="fact-label">${escapeHtml(label)}</span><span class="fact-value">${escapeHtml(value)}</span></div>`,
+    )
+    .join("")}</div>`;
+}
+
+function collectToc(blocks: Block[], path: number[] = [], depth = 0): TocItem[] {
+  const items: TocItem[] = [];
+  blocks.forEach((block, index) => {
+    const nextPath = [...path, index + 1];
+    if (block.type === "section") {
+      items.push({ id: `section-${nextPath.join("-")}`, title: block.title, depth });
+      items.push(...collectToc(block.blocks, nextPath, depth + 1));
+    } else if (block.type === "details") {
+      items.push(...collectToc(block.blocks, nextPath, depth));
+    }
+  });
+  return items;
+}
+
+function containsCode(blocks: Block[]): boolean {
+  return blocks.some((block) => {
+    if (block.type === "code") return true;
+    if (block.type === "section" || block.type === "details") return containsCode(block.blocks);
+    return false;
+  });
+}
+
+function renderBlocks(blocks: Block[], path: number[] = [], sectionDepth = 0): string {
+  return blocks
+    .map((block, index) => renderBlock(block, [...path, index + 1], sectionDepth))
+    .join("\n");
+}
+
+function renderBlock(block: Block, path: number[], sectionDepth: number): string {
+  switch (block.type) {
+    case "section": {
+      const headingLevel = Math.min(sectionDepth + 2, 6);
+      const id = `section-${path.join("-")}`;
+      const headingId = `${id}-title`;
+      return `<section class="section" id="${id}" aria-labelledby="${headingId}">
+  <h${headingLevel} id="${headingId}">${escapeHtml(block.title)}</h${headingLevel}>
+  ${renderBlocks(block.blocks, path, sectionDepth + 1)}
+</section>`;
+    }
+    case "paragraph":
+      return `<p>${renderInlineContent(block.content)}</p>`;
+    case "list": {
+      const style = block.style ?? "unordered";
+      const tag = style === "ordered" ? "ol" : "ul";
+      const items = block.items
+        .map((item) => `<li>${renderInlineContent(item.content)}</li>`)
+        .join("");
+      return `<${tag}>${items}</${tag}>`;
+    }
+    case "facts":
+      return renderFacts(block.items);
+    case "callout": {
+      const tone = block.tone ?? "note";
+      const title = block.title
+        ? `<strong class="callout-title">${escapeHtml(block.title)}</strong>`
+        : "";
+      return `<aside class="callout callout-${tone}">${title}<p>${renderInlineContent(block.content)}</p></aside>`;
+    }
+    case "steps":
+      return `<ol class="steps">${block.items
+        .map((step, index) => {
+          const status = step.status
+            ? `<span class="badge status-${step.status}">${escapeHtml(step.status)}</span>`
+            : "";
+          const description = step.description
+            ? `<p>${escapeHtml(step.description)}</p>`
+            : "";
+          const meta = step.meta?.length ? renderFacts(step.meta, "step-meta") : "";
+          return `<li><span class="step-number" aria-hidden="true">${index + 1}</span><div><h3>${escapeHtml(step.title)} ${status}</h3>${description}${meta}</div></li>`;
+        })
+        .join("")}</ol>`;
+    case "table":
+      return `<div class="table-wrap"><table>${block.caption ? `<caption>${escapeHtml(block.caption)}</caption>` : ""}<thead><tr>${block.columns
+        .map(
+          (column) =>
+            `<th class="align-${column.align ?? "left"}" scope="col">${escapeHtml(column.label)}</th>`,
+        )
+        .join("")}</tr></thead><tbody>${block.rows
+        .map(
+          (row) =>
+            `<tr>${row.cells
+              .map(
+                (cell, cellIndex) =>
+                  `<td class="align-${block.columns[cellIndex]?.align ?? "left"}">${renderInlineContent(cell)}</td>`,
+              )
+              .join("")}</tr>`,
+        )
+        .join("")}</tbody></table></div>`;
+    case "code": {
+      const label = block.filename ?? block.language;
+      const codeLabel = label ? `<span class="code-label">${escapeHtml(label)}</span>` : "";
+      const header = `<div class="code-toolbar">${codeLabel}<button class="copy-code" type="button" data-copy-code>Copy</button></div>`;
+      const caption = block.caption ? `<figcaption>${escapeHtml(block.caption)}</figcaption>` : "";
+      const highlighted = new Set(block.highlightLines ?? []);
+      const lines = block.code.split("\n");
+      const code = lines
+        .map(
+          (line, index) =>
+            `<span class="code-line${highlighted.has(index + 1) ? " highlighted" : ""}"><span class="line-number" aria-hidden="true">${index + 1}</span><span class="code-text">${escapeHtml(line)}</span></span>`,
+        )
+        .join("\n");
+      return `<figure class="code-block">${header}<pre><code>${code}</code></pre>${caption}</figure>`;
+    }
+    case "details":
+      return `<details${block.open ? " open" : ""}><summary>${escapeHtml(block.summary)}</summary><div class="details-body">${renderBlocks(block.blocks, path, sectionDepth)}</div></details>`;
+  }
+}
+
+const baseCss = `
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+a { color: var(--accent); text-decoration-thickness: .08em; text-underline-offset: .18em; }
+a:hover { text-decoration-thickness: .14em; }
+a:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; border-radius: 3px; }
+.shell { width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 56px 0 80px; }
+.hero { max-width: 850px; margin-bottom: 36px; }
+h1, h2, h3, h4, h5, h6 { line-height: 1.18; letter-spacing: -.025em; text-wrap: balance; }
+h1 { margin: 0; font-size: clamp(2.5rem, 7vw, 5.8rem); letter-spacing: -.055em; }
+h2 { margin: 0 0 18px; font-size: clamp(1.65rem, 4vw, 2.5rem); }
+h3 { font-size: 1.12rem; }
+.summary { max-width: 720px; margin: 22px 0 0; color: var(--muted); font-size: 1.15rem; }
+main { min-width: 0; }
+.section { margin: 0 0 24px; padding: 28px; scroll-margin-top: 28px; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--shadow); }
+.section .section { margin: 26px 0 0; padding: 22px; background: var(--surface-raised); box-shadow: none; }
+p { max-width: 75ch; }
+code:not(pre code) { padding: .12em .36em; background: var(--accent-soft); border-radius: 5px; font-size: .9em; }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin: 28px 0 36px; }
+.facts div, .step-meta div { padding: 14px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+.fact-label { display: block; color: var(--muted); font-size: .73rem; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
+.fact-value { display: block; margin-top: 3px; font-weight: 700; }
+ul, ol { padding-left: 1.4rem; }
+li + li { margin-top: .55rem; }
+.callout { margin: 22px 0; padding: 18px 20px; border: 1px solid var(--border); border-left: 5px solid var(--accent); border-radius: 10px; background: var(--accent-soft); }
+.callout p { margin: 4px 0 0; }
+.callout-title { display: block; }
+.callout-warning { border-left-color: #d28b24; }
+.callout-success { border-left-color: #34865a; }
+.steps { margin: 24px 0; padding: 0; list-style: none; counter-reset: none; }
+.steps > li { display: grid; grid-template-columns: 38px 1fr; gap: 14px; margin: 0; padding: 0 0 28px; position: relative; }
+.steps > li:not(:last-child)::before { content: ""; position: absolute; left: 18px; top: 38px; bottom: 0; width: 1px; background: var(--border); }
+.step-number { z-index: 1; display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; background: var(--accent); color: var(--surface); font-weight: 800; }
+.steps h3 { margin: 5px 0 4px; }
+.steps p { margin: 0; color: var(--muted); }
+.step-meta { display: flex; flex-wrap: wrap; gap: 7px; margin: 12px 0 0; }
+.step-meta div { padding: 6px 9px; }
+.badge { display: inline-flex; align-items: center; padding: .22em .58em; border: 1px solid currentColor; border-radius: 999px; font-size: .72em; font-weight: 800; letter-spacing: .045em; text-transform: uppercase; vertical-align: .12em; }
+.status-done, .severity-low { color: #2f7b50; }
+.status-active, .severity-medium { color: #9b6416; }
+.status-blocked, .severity-critical { color: #b13232; }
+.status-planned, .severity-high { color: var(--accent); }
+.table-wrap { max-width: 100%; margin: 24px 0; overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; }
+table { width: 100%; border-collapse: collapse; background: var(--surface-raised); font-size: .92rem; }
+caption { padding: 14px 16px; text-align: left; font-weight: 750; }
+th, td { padding: 12px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { color: var(--muted); font-size: .75rem; letter-spacing: .06em; text-transform: uppercase; }
+tbody tr:last-child td { border-bottom: 0; }
+.align-center { text-align: center; }
+.align-right { text-align: right; }
+.code-block { margin: 24px 0; overflow: hidden; border: 1px solid var(--border); border-radius: 12px; background: var(--code-bg); color: var(--code-text); }
+.code-toolbar { min-height: 42px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 7px 10px 7px 15px; border-bottom: 1px solid #ffffff22; }
+.code-label { overflow: hidden; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .78rem; text-overflow: ellipsis; white-space: nowrap; }
+.copy-code { flex: 0 0 auto; margin-left: auto; padding: 5px 9px; border: 1px solid #ffffff35; border-radius: 6px; background: transparent; color: inherit; font: 700 .72rem/1 ui-sans-serif, system-ui, sans-serif; cursor: pointer; }
+.copy-code:hover { background: #ffffff14; }
+.copy-code:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+pre { margin: 0; padding: 14px 0; overflow-x: auto; font: .84rem/1.65 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.code-line { display: grid; grid-template-columns: 3.5rem max-content; min-width: 100%; padding: 0 18px 0 0; }
+.code-line.highlighted { background: #ffffff12; box-shadow: inset 3px 0 var(--accent); }
+.line-number { padding-right: 16px; color: #8993a0; text-align: right; user-select: none; }
+figcaption { padding: 10px 15px; border-top: 1px solid #ffffff22; color: #b9c1cc; font-size: .78rem; }
+details { margin: 20px 0; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-raised); }
+summary { padding: 15px 18px; cursor: pointer; font-weight: 750; }
+.details-body { padding: 0 18px 18px; }
+.toc { position: fixed; z-index: 20; top: clamp(100px, 22vh, 220px); right: 0; width: min(280px, 86vw); transform: translateX(calc(100% - 38px)); transition: transform .42s cubic-bezier(.22, 1, .36, 1); }
+.toc:hover, .toc:focus, .toc:focus-within { transform: translateX(0); }
+.toc-dots { position: absolute; top: 12px; left: 0; display: grid; place-items: center; width: 38px; height: 44px; color: var(--muted); font-weight: 900; letter-spacing: 2px; transform: rotate(90deg); transform-origin: center; transition: opacity .24s ease, translate .42s cubic-bezier(.22, 1, .36, 1); }
+.toc:hover .toc-dots, .toc:focus .toc-dots, .toc:focus-within .toc-dots { opacity: 0; translate: 12px 0; }
+.toc-panel { margin-left: 38px; padding: 18px 20px 20px; border: 1px solid var(--border); border-right: 0; border-radius: 14px 0 0 14px; background: color-mix(in srgb, var(--surface) 94%, transparent); box-shadow: var(--shadow); backdrop-filter: blur(14px); }
+.toc-title { display: block; margin-bottom: 10px; font-size: .72rem; letter-spacing: .09em; text-transform: uppercase; }
+.toc a { display: block; padding: 5px 0; overflow: hidden; color: var(--muted); font-size: .84rem; text-decoration: none; text-overflow: ellipsis; white-space: nowrap; }
+.toc a:hover, .toc a:focus-visible { color: var(--accent); }
+.toc-depth-1 { padding-left: 12px !important; }
+.toc-depth-2 { padding-left: 24px !important; }
+.toc-depth-3 { padding-left: 36px !important; }
+.toc-depth-4, .toc-depth-5 { padding-left: 48px !important; }
+@media (max-width: 600px) {
+  .shell { width: min(100% - 20px, 1180px); padding-top: 32px; }
+  .section { padding: 20px; border-radius: 14px; }
+  .facts { grid-template-columns: 1fr 1fr; }
+}
+@media print {
+  :root { --bg: #fff; --surface: #fff; --surface-raised: #fff; --text: #111; --muted: #555; --border: #ccc; --shadow: none; }
+  .shell { width: 100%; padding: 0; }
+  .toc { display: none; }
+  .section, details { break-inside: avoid; }
+}`;
+
+const copyCodeScript = `<script>
+(() => {
+  async function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.append(textarea);
+    textarea.select();
+    const copied = document.execCommand("copy");
+    textarea.remove();
+    if (!copied) throw new Error("Copy failed");
+  }
+
+  document.addEventListener("click", async (event) => {
+    const target = event.target instanceof Element
+      ? event.target.closest("[data-copy-code]")
+      : null;
+    if (!(target instanceof HTMLButtonElement)) return;
+
+    const figure = target.closest(".code-block");
+    if (!figure) return;
+    const code = Array.from(figure.querySelectorAll(".code-text"))
+      .map((line) => line.textContent || "")
+      .join("\\n");
+
+    try {
+      await copyText(code);
+      target.textContent = "Copied";
+    } catch {
+      target.textContent = "Copy failed";
+    }
+    window.setTimeout(() => { target.textContent = "Copy"; }, 1600);
+  });
+})();
+</script>`;
+
+export function renderPlan(plan: PlanDocument, options: RenderOptions): string {
+  const blocks = plan.blocks ?? [];
+  const toc = options.navigation ? collectToc(blocks) : [];
+  const navigation = toc.length
+    ? `<nav class="toc" aria-label="Plan sections" tabindex="0"><span class="toc-dots" aria-hidden="true">•••</span><div class="toc-panel"><strong class="toc-title">On this page</strong>${toc
+        .map(
+          (item) =>
+            `<a class="toc-depth-${Math.min(item.depth, 5)}" href="#${item.id}">${escapeHtml(item.title)}</a>`,
+        )
+        .join("")}</div></nav>`
+    : "";
+  const facts = plan.facts?.length ? renderFacts(plan.facts) : "";
+  const hero = plan.title || plan.summary
+    ? `<header class="hero">${plan.title ? `<h1>${escapeHtml(plan.title)}</h1>` : ""}${plan.summary ? `<p class="summary">${escapeHtml(plan.summary)}</p>` : ""}</header>`
+    : "";
+  const main = blocks.length ? `<main>${renderBlocks(blocks)}</main>` : "";
+  const scripts = containsCode(blocks) ? copyCodeScript : "";
+
+  return `<!doctype html>
+<html lang="${escapeHtml(plan.language ?? "en")}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>${escapeHtml(plan.title ?? "heple plan")}</title>
+  <style>${themeCss(options.theme)}${baseCss}</style>
+</head>
+<body>
+  <div class="shell">
+    ${hero}
+    ${facts}
+    ${main}
+  </div>
+  ${navigation}
+  ${scripts}
+</body>
+</html>
+`;
+}

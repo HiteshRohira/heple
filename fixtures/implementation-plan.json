@@ -1,0 +1,107 @@
+{
+  "version": "1",
+  "title": "Comment threads on task cards",
+  "summary": "Add one-level threaded comments with optimistic updates, realtime fan-out, and a controlled rollout.",
+  "facts": [
+    { "label": "Effort", "value": "~2 weeks" },
+    { "label": "Surfaces", "value": "3 packages" },
+    { "label": "Feature flag", "value": "task_comments_v1" }
+  ],
+  "blocks": [
+    {
+      "type": "section",
+      "title": "Milestones",
+      "blocks": [
+        {
+          "type": "steps",
+          "items": [
+            {
+              "title": "Schema and API contract",
+              "description": "Create the tables, migrations, and router stubs before UI work begins.",
+              "status": "active",
+              "meta": [{ "label": "When", "value": "Week 1 · Mon–Tue" }]
+            },
+            {
+              "title": "Thread component and composer",
+              "description": "Render fixtures, then add optimistic insert and rollback behavior.",
+              "status": "planned"
+            },
+            {
+              "title": "Realtime and rollout",
+              "description": "Fan out new comments, track read cursors, and ramp the feature flag.",
+              "status": "planned"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "title": "Implementation notes",
+      "blocks": [
+        {
+          "type": "callout",
+          "tone": "info",
+          "title": "Important constraint",
+          "content": [
+            { "type": "text", "text": "Replies are limited to one level for v1. Track the decision in " },
+            { "type": "link", "text": "BIR-1142", "href": "https://example.com/tasks/BIR-1142" },
+            { "type": "text", "text": "." }
+          ]
+        },
+        {
+          "type": "code",
+          "filename": "packages/db/migrations/0042_comments.sql",
+          "language": "sql",
+          "highlightLines": [2],
+          "code": "create table comments (\n  id uuid primary key default gen_random_uuid(),\n  task_id uuid not null references tasks(id),\n  body text not null\n);"
+        },
+        {
+          "type": "details",
+          "summary": "Supporting notes",
+          "blocks": [
+            {
+              "type": "list",
+              "style": "unordered",
+              "items": [
+                { "content": [{ "type": "text", "text": "Review the API contract" }] },
+                { "content": [{ "type": "text", "text": "Test temp-id reconciliation" }] }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "title": "Risks",
+      "blocks": [
+        {
+          "type": "table",
+          "caption": "Known delivery risks",
+          "columns": [
+            { "label": "Risk" },
+            { "label": "Severity", "align": "center" },
+            { "label": "Mitigation" }
+          ],
+          "rows": [
+            {
+              "cells": [
+                [{ "type": "text", "text": "Realtime duplicate" }],
+                [{ "type": "severity", "value": "high" }],
+                [{ "type": "text", "text": "Dedupe on the server-assigned id." }]
+              ]
+            },
+            {
+              "cells": [
+                [{ "type": "text", "text": "Stale unread count" }],
+                [{ "type": "severity", "value": "medium" }],
+                [{ "type": "text", "text": "Broadcast read-cursor updates." }]
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

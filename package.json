@@ -1,0 +1,36 @@
+{
+  "name": "heple",
+  "version": "0.1.0",
+  "description": "Deterministic HTML plans from structured JSON",
+  "type": "module",
+  "bin": {
+    "heple": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/cli.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@sinclair/typebox": "^0.34.38",
+    "ajv": "^8.17.1",
+    "commander": "^14.0.0",
+    "open": "^11.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3",
+    "vitest": "^4.0.0"
+  },
+  "packageManager": "pnpm@10.12.1"
+}
