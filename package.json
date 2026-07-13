@@ -1,10 +1,23 @@
 {
   "name": "heple",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "description": "Deterministic HTML plans from structured JSON",
+  "keywords": [
+    "cli",
+    "html",
+    "planning",
+    "json",
+    "documentation"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HiteshRohira/heple.git"
+  },
+  "homepage": "https://github.com/HiteshRohira/heple#readme",
+  "bugs": "https://github.com/HiteshRohira/heple/issues",
   "type": "module",
   "bin": {
-    "heple": "./dist/cli.js"
+    "heple": "dist/cli.js"
   },
   "files": [
     "dist",
@@ -12,6 +25,7 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "prepack": "pnpm build",
     "dev": "tsx src/cli.ts",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -21,6 +35,9 @@
     "node": ">=24"
   },
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@sinclair/typebox": "^0.34.38",
     "ajv": "^8.17.1",

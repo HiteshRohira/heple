@@ -1,4 +1,4 @@
-# AGENTS.md
+# heple project guide
 
 ## What heple is
 
@@ -29,6 +29,12 @@ heple resolves that tension:
 
 The constraint is the feature. A smaller vocabulary that renders consistently is more valuable than arbitrary HTML that occasionally looks exceptional.
 
+## Roadmap TODOs
+
+- Add a setup flow that chooses the default style system for future renders.
+- Explore a one-time, deliberately simple local theme-picker page as an optional setup step.
+- Design a supported custom-theme format with validated semantic tokens, paired light/dark modes, and deterministic local loading.
+- Design a custom HTML-structure/template extension point for pages that need a different document shape. Keep model content escaped and validation explicit; customization must not silently introduce arbitrary scripts.
 
 ## The model-facing contract
 
@@ -38,7 +44,7 @@ The intended capability is conceptually:
 
 ```sh
 heple plan.json                         # validate, render, and open
-heple plan.json --theme signal          # choose a renderer-owned theme
+heple plan.json --theme default         # choose a renderer-owned theme
 heple plan.json --output ./plan.html    # choose the artifact path
 heple plan.json --navigation            # opt into the right-side section navigator
 heple plan.json --no-open               # render without opening a browser
@@ -53,7 +59,7 @@ The default command should complete the useful loop without requiring a subcomma
 
 The model prompt must be derived from, or tested against, the canonical schema so the two cannot drift. Include the schema version in every document. Prefer explicit discriminated unions and bounded enums over loosely shaped objects. Keep required fields minimal and make defaults deterministic.
 
-The schema version is required, but visible top-level regions—title, summary, facts, and blocks—are optional. Omitted regions render nothing. A selected primitive still requires the semantic payload that makes it meaningful, such as paragraph content or a link target.
+The schema version is required, but visible top-level regions—title, summary, and blocks—are optional. Omitted regions render nothing. A selected primitive still requires the semantic payload that makes it meaningful, such as paragraph content or a link target.
 
 Do not expose internal component names merely because they exist in the renderer. The public vocabulary is a durable product API; internal HTML templates are replaceable implementation details.
 
@@ -144,11 +150,11 @@ The v1 stack is Node.js 24 LTS, ESM, and strict TypeScript. Use Commander for th
 
 The v1 public vocabulary is intentionally small:
 
-- block primitives: `section`, `paragraph`, `list`, `facts`, `callout`, `steps`, `table`, `code`, and `details`;
+- block primitives: `section`, `paragraph`, `list`, `callout`, `steps`, `table`, `code`, and `details`;
 - inline primitives: `text`, `link`, `strong`, `emphasis`, `code`, `status`, and `severity`;
-- themes: `signal`, `orchid`, and `circuit`.
+- themes: `default`, `bubblegum`, `caffeine`, `claude`, `claymorphism`, `neobrutalism`, `sage-garden`, `supabase`, `twitter`, `vercel`, `violet-bloom`, `modern-minimal`, and `mono`.
 
-Sections determine heading levels; the model does not select `h1` through `h6`. Details render with native `<details>` and `<summary>` and require no custom JavaScript. Lists are ordered or unordered; v1 has no checklist primitive. Facts and step metadata use ordinary grouped text rather than HTML description lists. Code blocks may include the renderer-owned copy control. Every theme defines paired light/dark semantic tokens and the artifact includes a visible mode toggle. Theme choice and section navigation are renderer configuration, not model-authored document content. Navigation is off by default and, when enabled, appears as a fixed right-side disclosure rail without reducing content width.
+Sections determine heading levels; the model does not select `h1` through `h6`. Details render with native `<details>` and `<summary>` and require no custom JavaScript. Lists are ordered or unordered; v1 has no checklist primitive. Step metadata uses ordinary grouped text rather than HTML description lists. Code blocks may include the renderer-owned copy control. Every theme defines paired light/dark semantic tokens and the artifact includes a visible mode toggle. Theme choice and section navigation are renderer configuration, not model-authored document content. Navigation is off by default and, when enabled, appears as a fixed right-side disclosure rail without reducing content width.
 
 `example.json` is a shipped compatibility fixture and user-facing element catalog. Keep it exhaustive: every supported block and inline primitive, bounded variant, and optional renderer field must appear at least once. `heple example` renders it with navigation enabled by default.
 
@@ -201,8 +207,8 @@ The medium-level product direction is informed by Thariq Shihipar's “The Unrea
 
 Use these references only to understand why spatial, visual, interactive documents can outperform walls of Markdown. Do not borrow their visual identity or treat their individual layouts as templates.
 
-Theme architecture is informed by tweakcn's separation of semantic colors, paired light/dark modes, typography, radius, and shadows:
+Theme architecture and the curated preset tokens come from tweakcn's separation of semantic colors, paired light/dark modes, typography, radius, and shadows:
 
 - https://github.com/jnsahaj/tweakcn
 
-heple themes must remain original presets rather than copies of tweakcn themes. heple's job is to turn broad theme-system ideas into a stable, constrained document renderer.
+heple adapts the selected tweakcn presets to its smaller semantic token vocabulary while keeping the source palette names recognizable. Rendering remains self-contained and deterministic.

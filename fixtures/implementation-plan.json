@@ -2,11 +2,6 @@
   "version": "1",
   "title": "Comment threads on task cards",
   "summary": "Add one-level threaded comments with optimistic updates, realtime fan-out, and a controlled rollout.",
-  "facts": [
-    { "label": "Effort", "value": "~2 weeks" },
-    { "label": "Surfaces", "value": "3 packages" },
-    { "label": "Feature flag", "value": "task_comments_v1" }
-  ],
   "blocks": [
     {
       "type": "section",

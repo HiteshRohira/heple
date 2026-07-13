@@ -11,7 +11,7 @@ function normalizeBlocks(blocks: Block[]): void {
         block.style ??= "unordered";
         break;
       case "callout":
-        block.tone ??= "note";
+        block.tone ??= "info";
         break;
       case "table":
         for (const column of block.columns) column.align ??= "left";
@@ -22,7 +22,6 @@ function normalizeBlocks(blocks: Block[]): void {
         }
         break;
       case "paragraph":
-      case "facts":
       case "steps":
         break;
     }

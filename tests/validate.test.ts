@@ -36,9 +36,10 @@ describe("validatePlan", () => {
     for (const value of ["low", "medium", "high", "critical"]) {
       expect(serialized).toContain(`\"${value}\"`);
     }
-    for (const tone of ["note", "info", "warning", "success"]) {
+    for (const tone of ["info", "warning", "success"]) {
       expect(serialized).toContain(`\"${tone}\"`);
     }
+    expect(serialized).not.toContain('\"note\"');
   });
 
   it("rejects unknown properties", async () => {
@@ -53,6 +54,18 @@ describe("validatePlan", () => {
         message: "must NOT have additional properties",
       });
     }
+  });
+
+  it("rejects the removed facts regions and note callout tone", () => {
+    expect(validatePlan({ version: "1", facts: [{ label: "A", value: "B" }] }).ok).toBe(false);
+    expect(validatePlan({
+      version: "1",
+      blocks: [{
+        type: "callout",
+        tone: "note",
+        content: [{ type: "text", text: "Old tone" }],
+      }],
+    }).ok).toBe(false);
   });
 
   it("rejects unsafe links", () => {

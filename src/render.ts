@@ -26,7 +26,7 @@ function renderInline(inline: Inline): string {
     case "text":
       return escapeHtml(inline.text);
     case "link":
-      return `<a href="${escapeHtml(inline.href)}">${escapeHtml(inline.text)}</a>`;
+      return `<a href="${escapeHtml(inline.href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(inline.text)}</a>`;
     case "strong":
       return `<strong>${escapeHtml(inline.text)}</strong>`;
     case "emphasis":
@@ -44,8 +44,8 @@ function renderInlineContent(content: Inline[]): string {
   return content.map(renderInline).join("");
 }
 
-function renderFacts(items: Array<{ label: string; value: string }>, className = "facts"): string {
-  return `<div class="${className}">${items
+function renderMetadata(items: Array<{ label: string; value: string }>): string {
+  return `<div class="step-meta">${items
     .map(
       ({ label, value }) =>
         `<div class="fact"><span class="fact-label">${escapeHtml(label)}</span><span class="fact-value">${escapeHtml(value)}</span></div>`,
@@ -94,10 +94,8 @@ function renderBlock(block: Block, path: number[], sectionDepth: number): string
         .join("");
       return `<${tag}>${items}</${tag}>`;
     }
-    case "facts":
-      return renderFacts(block.items);
     case "callout": {
-      const tone = block.tone ?? "note";
+      const tone = block.tone ?? "info";
       const title = block.title
         ? `<strong class="callout-title">${escapeHtml(block.title)}</strong>`
         : "";
@@ -112,7 +110,7 @@ function renderBlock(block: Block, path: number[], sectionDepth: number): string
           const description = step.description
             ? `<p>${escapeHtml(step.description)}</p>`
             : "";
-          const meta = step.meta?.length ? renderFacts(step.meta, "step-meta") : "";
+          const meta = step.meta?.length ? renderMetadata(step.meta) : "";
           return `<li><span class="step-number" aria-hidden="true">${index + 1}</span><div><h3>${escapeHtml(step.title)} ${status}</h3>${description}${meta}</div></li>`;
         })
         .join("")}</ol>`;
@@ -169,10 +167,13 @@ a { color: var(--accent); text-decoration-thickness: .08em; text-underline-offse
 a:hover { text-decoration-thickness: .14em; }
 a:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; border-radius: 3px; }
 .shell { width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 56px 0 80px; }
-.mode-toggle { position: fixed; z-index: 30; top: 18px; right: 18px; display: inline-flex; align-items: center; gap: 8px; min-height: 38px; padding: 7px 11px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--text); box-shadow: var(--shadow); font: 700 .78rem/1 var(--font-sans); cursor: pointer; transition: background-color .2s ease, border-color .2s ease, color .2s ease, transform .2s ease; }
+.mode-toggle { position: fixed; z-index: 30; top: 18px; right: 18px; display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border: 1px solid var(--border); border-radius: 50%; background: var(--surface); color: var(--text); box-shadow: var(--shadow); cursor: pointer; transition: background-color .2s ease, border-color .2s ease, color .2s ease, transform .2s ease; }
 .mode-toggle:hover { transform: translateY(-1px); }
 .mode-toggle:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
-.mode-icon { display: grid; place-items: center; width: 18px; height: 18px; font-size: 1rem; }
+.mode-icon { width: 18px; height: 18px; }
+.mode-icon-dark { display: none; }
+:root[data-mode="dark"] .mode-icon-light { display: none; }
+:root[data-mode="dark"] .mode-icon-dark { display: block; }
 .hero { max-width: 850px; margin-bottom: 36px; }
 h1, h2, h3, h4, h5, h6 { line-height: 1.18; letter-spacing: -.025em; text-wrap: balance; }
 h1 { margin: 0; font-size: clamp(2.3rem, 5vw, 3.9rem); letter-spacing: -.04em; }
@@ -184,17 +185,17 @@ main { min-width: 0; }
 .section .section { margin: 26px 0 0; padding: 22px; background: var(--surface-raised); box-shadow: none; }
 p { max-width: 75ch; }
 code:not(pre code) { padding: .12em .36em; background: var(--accent-soft); border-radius: max(3px, calc(var(--radius) / 3)); font-family: var(--font-mono); font-size: .9em; }
-.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin: 28px 0 36px; }
-.facts div, .step-meta div { padding: 14px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: max(4px, calc(var(--radius) * .7)); }
+.step-meta div { padding: 14px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: max(4px, calc(var(--radius) * .7)); }
 .fact-label { display: block; color: var(--muted); font-size: .73rem; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
 .fact-value { display: block; margin-top: 3px; font-weight: 700; }
 ul, ol { padding-left: 1.4rem; }
 li + li { margin-top: .55rem; }
-.callout { margin: 22px 0; padding: 18px 20px; border: 1px solid var(--border); border-left: 5px solid var(--accent); border-radius: max(4px, calc(var(--radius) * .7)); background: var(--accent-soft); }
+.callout { margin: 22px 0; padding: 18px 20px; border: 1px solid var(--border); border-left-width: 5px; border-radius: max(4px, calc(var(--radius) * .7)); }
 .callout p { margin: 4px 0 0; }
 .callout-title { display: block; }
-.callout-warning { border-left-color: var(--warning); }
-.callout-success { border-left-color: var(--success); }
+.callout-info { border-left-color: var(--info); background: var(--info-soft); }
+.callout-warning { border-left-color: var(--warning); background: var(--warning-soft); }
+.callout-success { border-left-color: var(--success); background: var(--success-soft); }
 .steps { margin: 24px 0; padding: 0; list-style: none; counter-reset: none; }
 .steps > li { display: grid; grid-template-columns: 38px 1fr; gap: 14px; margin: 0; padding: 0 0 28px; position: relative; }
 .steps > li:not(:last-child)::before { content: ""; position: absolute; left: 18px; top: 38px; bottom: 0; width: 1px; background: var(--border); }
@@ -245,7 +246,6 @@ summary { padding: 15px 18px; cursor: pointer; font-weight: 750; }
 @media (max-width: 600px) {
   .shell { width: min(100% - 20px, 1180px); padding-top: 32px; }
   .section { padding: 20px; }
-  .facts { grid-template-columns: 1fr 1fr; }
 }
 @media print {
   :root { --bg: #fff; --surface: #fff; --surface-raised: #fff; --text: #111; --muted: #555; --border: #ccc; --shadow: none; }
@@ -256,15 +256,14 @@ summary { padding: 15px 18px; cursor: pointer; font-weight: 750; }
 
 const initialModeScript = `<script>
 (() => {
-  let mode = "light";
+  const devicePreference = window.matchMedia("(prefers-color-scheme: dark)");
+  let mode = devicePreference.matches ? "dark" : "light";
   try {
     const saved = localStorage.getItem("heple-mode");
     mode = saved === "light" || saved === "dark"
       ? saved
-      : window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-  } catch {
-    mode = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-  }
+      : mode;
+  } catch {}
   document.documentElement.dataset.mode = mode;
 })();
 </script>`;
@@ -272,15 +271,17 @@ const initialModeScript = `<script>
 const interactionScript = `<script>
 (() => {
   const modeToggle = document.querySelector("[data-mode-toggle]");
-  const modeLabel = modeToggle?.querySelector("[data-mode-label]");
-  const modeIcon = modeToggle?.querySelector("[data-mode-icon]");
+  const devicePreference = window.matchMedia("(prefers-color-scheme: dark)");
+  let followsDevice = true;
+  try {
+    const saved = localStorage.getItem("heple-mode");
+    followsDevice = saved !== "light" && saved !== "dark";
+  } catch {}
 
   function updateModeControl() {
     if (!(modeToggle instanceof HTMLButtonElement)) return;
     const dark = document.documentElement.dataset.mode === "dark";
     const next = dark ? "light" : "dark";
-    if (modeLabel) modeLabel.textContent = dark ? "Light" : "Dark";
-    if (modeIcon) modeIcon.textContent = dark ? "☀" : "◐";
     modeToggle.setAttribute("aria-label", "Switch to " + next + " mode");
     modeToggle.title = "Switch to " + next + " mode";
   }
@@ -288,7 +289,13 @@ const interactionScript = `<script>
   modeToggle?.addEventListener("click", () => {
     const next = document.documentElement.dataset.mode === "dark" ? "light" : "dark";
     document.documentElement.dataset.mode = next;
+    followsDevice = false;
     try { localStorage.setItem("heple-mode", next); } catch {}
+    updateModeControl();
+  });
+  devicePreference.addEventListener("change", (event) => {
+    if (!followsDevice) return;
+    document.documentElement.dataset.mode = event.matches ? "dark" : "light";
     updateModeControl();
   });
   updateModeControl();
@@ -344,12 +351,11 @@ export function renderPlan(plan: PlanDocument, options: RenderOptions): string {
         )
         .join("")}</div></nav>`
     : "";
-  const facts = plan.facts?.length ? renderFacts(plan.facts) : "";
   const hero = plan.title || plan.summary
     ? `<header class="hero">${plan.title ? `<h1>${escapeHtml(plan.title)}</h1>` : ""}${plan.summary ? `<p class="summary">${escapeHtml(plan.summary)}</p>` : ""}</header>`
     : "";
   const main = blocks.length ? `<main>${renderBlocks(blocks)}</main>` : "";
-  const modeToggle = `<button class="mode-toggle" type="button" data-mode-toggle aria-label="Toggle light and dark mode"><span class="mode-icon" data-mode-icon aria-hidden="true">◐</span><span data-mode-label>Dark</span></button>`;
+  const modeToggle = `<button class="mode-toggle" type="button" data-mode-toggle aria-label="Switch color mode"><svg class="mode-icon mode-icon-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"></path></svg><svg class="mode-icon mode-icon-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg></button>`;
 
   return `<!doctype html>
 <html lang="${escapeHtml(plan.language ?? "en")}">
@@ -365,7 +371,6 @@ export function renderPlan(plan: PlanDocument, options: RenderOptions): string {
   ${modeToggle}
   <div class="shell">
     ${hero}
-    ${facts}
     ${main}
   </div>
   ${navigation}

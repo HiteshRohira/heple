@@ -3,11 +3,6 @@
   "title": "The heple element catalog",
   "summary": "A compact reference document containing every v1 block, inline style, state, and optional presentation field.",
   "language": "en",
-  "facts": [
-    { "label": "Purpose", "value": "Element reference" },
-    { "label": "Schema", "value": "Version 1" },
-    { "label": "Coverage", "value": "All v1 primitives" }
-  ],
   "blocks": [
     {
       "type": "section",
@@ -43,7 +38,7 @@
     },
     {
       "type": "section",
-      "title": "Lists and facts",
+      "title": "Lists",
       "blocks": [
         {
           "type": "paragraph",
@@ -70,14 +65,6 @@
             { "content": [{ "type": "text", "text": "Render the document" }] },
             { "content": [{ "type": "text", "text": "Open it in the browser" }] }
           ]
-        },
-        {
-          "type": "facts",
-          "items": [
-            { "label": "This is a fact", "value": "Label and value" },
-            { "label": "Layout", "value": "Responsive grid" },
-            { "label": "Source", "value": "Structured JSON" }
-          ]
         }
       ]
     },
@@ -85,12 +72,6 @@
       "type": "section",
       "title": "Callouts",
       "blocks": [
-        {
-          "type": "callout",
-          "tone": "note",
-          "title": "Note callout",
-          "content": [{ "type": "text", "text": "Use this for useful context that does not imply urgency." }]
-        },
         {
           "type": "callout",
           "tone": "info",

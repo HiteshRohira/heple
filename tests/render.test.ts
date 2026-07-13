@@ -17,11 +17,11 @@ beforeAll(async () => {
 
 describe("renderPlan", () => {
   it("is deterministic for the same plan and theme", () => {
-    expect(renderPlan(plan, { theme: "signal" })).toBe(renderPlan(plan, { theme: "signal" }));
+    expect(renderPlan(plan, { theme: "default" })).toBe(renderPlan(plan, { theme: "default" }));
   });
 
   it("produces self-contained semantic HTML", () => {
-    const html = renderPlan(plan, { theme: "signal" });
+    const html = renderPlan(plan, { theme: "default" });
 
     expect(html).toContain("<!doctype html>");
     expect(html).not.toContain('<nav class="toc"');
@@ -30,8 +30,15 @@ describe("renderPlan", () => {
     expect(html).toContain('class="copy-code"');
     expect(html).toContain("navigator.clipboard.writeText");
     expect(html).toContain('class="mode-toggle"');
+    expect(html).toContain('class="mode-icon mode-icon-light"');
+    expect(html).toContain('class="mode-icon mode-icon-dark"');
+    expect(html).not.toContain("data-mode-label");
     expect(html).toContain('data-mode="dark"');
+    expect(html).toContain('devicePreference.addEventListener("change"');
     expect(html).toContain('localStorage.setItem("heple-mode"');
+    expect(html).toContain('target="_blank" rel="noopener noreferrer"');
+    expect(html).toContain(".callout-info { border-left-color: var(--info); background: var(--info-soft); }");
+    expect(html).not.toContain('class="facts"');
     expect(html).not.toMatch(/https:\/\/[^\"]+\.(css|js)/);
     expect(html).not.toMatch(/<dl|<dt|<dd/);
 
@@ -43,11 +50,12 @@ describe("renderPlan", () => {
   });
 
   it("renders navigation only when requested and targets offset section containers", () => {
-    const html = renderPlan(plan, { theme: "signal", navigation: true });
+    const html = renderPlan(plan, { theme: "default", navigation: true });
 
     expect(html).toContain('<nav class="toc" aria-label="Plan sections" tabindex="0">');
     expect(html).toContain('class="toc-dots"');
     expect(html).toContain('href="#section-1"');
+    expect(html).not.toContain('href="#section-1" target="_blank"');
     expect(html).toContain('<section class="section" id="section-1"');
     expect(html).toContain("scroll-margin-top: 28px");
   });
@@ -63,7 +71,7 @@ describe("renderPlan", () => {
         },
       ],
     };
-    const html = renderPlan(hostile, { theme: "orchid" });
+    const html = renderPlan(hostile, { theme: "violet-bloom" });
 
     expect(html).not.toContain("<script>alert(1)</script>");
     expect(html).not.toContain("<img src=x");

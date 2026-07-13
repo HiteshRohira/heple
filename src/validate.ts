@@ -85,7 +85,6 @@ function inspectBlocks(
           );
         });
         break;
-      case "facts":
       case "steps":
       case "code":
         break;

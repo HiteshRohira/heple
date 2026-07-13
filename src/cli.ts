@@ -12,7 +12,7 @@ import { getJsonSchema, THEME_NAMES, type ThemeName } from "./schema.js";
 import { themeDescriptions } from "./themes.js";
 import { formatValidationIssues, validatePlan } from "./validate.js";
 
-const VERSION = "0.1.0";
+const VERSION = "0.0.1";
 
 interface CliDependencies {
   openPath: (path: string) => Promise<unknown>;
@@ -69,7 +69,7 @@ export function createProgram(
     .addOption(
       new Option("-t, --theme <theme>", "render theme")
         .choices([...THEME_NAMES])
-        .default("signal"),
+        .default("default"),
     )
     .option("--navigation", "show the right-side section navigator")
     .option("--no-open", "do not open the generated plan")
@@ -88,7 +88,7 @@ export function createProgram(
     .addOption(
       new Option("-t, --theme <theme>", "render theme")
         .choices([...THEME_NAMES])
-        .default("signal"),
+        .default("default"),
     )
     .option("--no-navigation", "hide the right-side section navigator")
     .option("--no-open", "do not open the generated catalog")
@@ -133,7 +133,7 @@ export function createProgram(
     .description("List renderer themes")
     .action(() => {
       for (const theme of THEME_NAMES) {
-        process.stdout.write(`${theme.padEnd(10)} ${themeDescriptions[theme]}\n`);
+        process.stdout.write(`${theme.padEnd(16)} ${themeDescriptions[theme]}\n`);
       }
     });
 

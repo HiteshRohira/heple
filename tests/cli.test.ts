@@ -15,6 +15,11 @@ async function runCli(args: string[]) {
 }
 
 describe("heple CLI", () => {
+  it("prints the package version", async () => {
+    const result = await runCli(["--version"]);
+    expect(result.stdout).toBe("0.0.1\n");
+  });
+
   it("validates a plan", async () => {
     const result = await runCli(["validate", "fixtures/implementation-plan.json"]);
     expect(result.stdout).toBe("Plan is valid\n");
@@ -27,7 +32,7 @@ describe("heple CLI", () => {
     const result = await runCli([
       "fixtures/implementation-plan.json",
       "--theme",
-      "circuit",
+      "sage-garden",
       "--output",
       output,
       "--no-open",
@@ -35,7 +40,7 @@ describe("heple CLI", () => {
 
     expect(result.stdout).toBe(`Created ${output}\n`);
     const html = await readFile(output, "utf8");
-    expect(html).toContain("--bg: #f2f6ec");
+    expect(html).toContain("--bg: #f8f7f4");
     expect(html).not.toContain('<nav class="toc"');
   });
 
@@ -55,9 +60,10 @@ describe("heple CLI", () => {
 
   it("prints available themes", async () => {
     const result = await runCli(["themes"]);
-    expect(result.stdout).toContain("signal");
-    expect(result.stdout).toContain("orchid");
-    expect(result.stdout).toContain("circuit");
+    expect(result.stdout).toContain("default");
+    expect(result.stdout).toContain("bubblegum");
+    expect(result.stdout).toContain("modern-minimal");
+    expect(result.stdout).toContain("mono");
   });
 
   it("renders the shipped exhaustive example with navigation enabled", async () => {

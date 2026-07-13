@@ -19,7 +19,6 @@ export const BLOCK_TYPES = [
   "section",
   "paragraph",
   "list",
-  "facts",
   "callout",
   "steps",
   "table",
@@ -27,7 +26,21 @@ export const BLOCK_TYPES = [
   "details",
 ] as const;
 
-export const THEME_NAMES = ["signal", "orchid", "circuit"] as const;
+export const THEME_NAMES = [
+  "default",
+  "bubblegum",
+  "caffeine",
+  "claude",
+  "claymorphism",
+  "neobrutalism",
+  "sage-garden",
+  "supabase",
+  "twitter",
+  "vercel",
+  "violet-bloom",
+  "modern-minimal",
+  "mono",
+] as const;
 export type ThemeName = (typeof THEME_NAMES)[number];
 
 export const InlineSchema = Type.Union([
@@ -93,14 +106,9 @@ export const BlockSchema = Type.Recursive(
         ),
       }),
       exactObject({
-        type: Type.Literal("facts"),
-        items: Type.Array(FactSchema, { minItems: 1 }),
-      }),
-      exactObject({
         type: Type.Literal("callout"),
         tone: Type.Optional(
           Type.Union([
-            Type.Literal("note"),
             Type.Literal("info"),
             Type.Literal("warning"),
             Type.Literal("success"),
@@ -174,7 +182,6 @@ export const PlanDocumentSchema = exactObject({
   title: Type.Optional(nonEmptyString),
   summary: Type.Optional(Type.String()),
   language: Type.Optional(Type.String({ pattern: "^[A-Za-z]{2,3}(-[A-Za-z0-9]+)*$" })),
-  facts: Type.Optional(Type.Array(FactSchema, { minItems: 1 })),
   blocks: Type.Optional(Type.Array(BlockSchema, { minItems: 1 })),
 });
 
