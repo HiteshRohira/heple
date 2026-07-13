@@ -8,9 +8,10 @@ import { describe, expect, it } from "vitest";
 const execFileAsync = promisify(execFile);
 const cli = resolve("src/cli.ts");
 
-async function runCli(args: string[]) {
+async function runCli(args: string[], env?: NodeJS.ProcessEnv) {
   return execFileAsync(process.execPath, ["--import", "tsx", cli, ...args], {
     cwd: process.cwd(),
+    env: env ? { ...process.env, ...env } : process.env,
   });
 }
 
@@ -35,12 +36,25 @@ describe("heple CLI", () => {
     expect(result.stderr).toBe("");
   });
 
-  it("shows setup guidance with the root help", async () => {
+  it("shows only the welcome message when run without arguments", async () => {
     const result = await runCli([]);
 
-    expect(result.stdout).toContain("Make HTML plans with consistent design");
-    expect(result.stdout).toContain("Run heple example to see an example plan.");
-    expect(result.stdout).toContain("Run heple themes to choose a theme");
+    expect(result.stdout).toBe(
+      `Make HTML plans with consistent design. heple turns a structured JSON plan into deterministic, self-contained HTML and opens it in your default browser.
+
+If you are an agent, run heple prompt to see what you have to do.
+If you are a human, run heple example.
+`,
+    );
+    expect(result.stderr).toBe("");
+  });
+
+  it("shows arguments, options, and commands with --help", async () => {
+    const result = await runCli(["--help"]);
+
+    expect(result.stdout).toContain("Arguments:");
+    expect(result.stdout).toContain("Options:");
+    expect(result.stdout).toContain("Commands:");
   });
 
   it("validates a plan", async () => {
@@ -83,10 +97,32 @@ describe("heple CLI", () => {
 
   it("prints available themes", async () => {
     const result = await runCli(["themes"]);
+    expect(result.stdout).toContain("Themes are inspired by tweakcn.");
     expect(result.stdout).toContain("default");
     expect(result.stdout).toContain("bubblegum");
     expect(result.stdout).toContain("modern-minimal");
     expect(result.stdout).toContain("mono");
+  });
+
+  it("saves and uses the selected default theme", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "heple-test-"));
+    const configHome = join(directory, "config");
+    const output = join(directory, "plan.html");
+    const env = { XDG_CONFIG_HOME: configHome };
+
+    const selection = await runCli(["themes", "sage-garden"], env);
+    expect(selection.stdout).toContain("Default theme changed to sage-garden.");
+    expect(
+      JSON.parse(await readFile(join(configHome, "heple", "config.json"), "utf8")),
+    ).toEqual({ theme: "sage-garden" });
+
+    await runCli([
+      "fixtures/implementation-plan.json",
+      "--output",
+      output,
+      "--no-open",
+    ], env);
+    expect(await readFile(output, "utf8")).toContain("--bg: #f8f7f4");
   });
 
   it("renders the shipped exhaustive example with navigation enabled", async () => {

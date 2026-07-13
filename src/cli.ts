@@ -3,17 +3,24 @@
 import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
-import { Command, Option } from "commander";
+import { Argument, Command, Option } from "commander";
 import open from "open";
+import { getDefaultTheme, setDefaultTheme } from "./config.js";
 import { defaultOutputPath, readInput, writeArtifact } from "./io.js";
 import { normalizePlan } from "./normalize.js";
 import { getModelPrompt } from "./prompt.js";
 import { renderPlan } from "./render.js";
 import { getJsonSchema, THEME_NAMES, type ThemeName } from "./schema.js";
+import { selectTheme } from "./theme-selector.js";
 import { themeDescriptions } from "./themes.js";
 import { formatValidationIssues, validatePlan } from "./validate.js";
 
 const VERSION = "0.0.1";
+const WELCOME_MESSAGE = `Make HTML plans with consistent design. heple turns a structured JSON plan into deterministic, self-contained HTML and opens it in your default browser.
+
+If you are an agent, run heple prompt to see what you have to do.
+If you are a human, run heple example.
+`;
 
 interface CliDependencies {
   openPath: (path: string) => Promise<unknown>;
@@ -21,7 +28,7 @@ interface CliDependencies {
 
 interface RenderCommandOptions {
   output?: string;
-  theme: ThemeName;
+  theme?: ThemeName;
   open: boolean;
   navigation?: boolean;
 }
@@ -44,7 +51,7 @@ async function renderCommand(
   const plan = normalizePlan(assertValid(input));
   const outputPath = resolve(options.output ?? fallbackOutputPath ?? defaultOutputPath(inputPath));
   const html = renderPlan(plan, {
-    theme: options.theme,
+    theme: options.theme ?? await getDefaultTheme(),
     navigation: options.navigation ?? false,
   });
   await writeArtifact(outputPath, html);
@@ -69,22 +76,13 @@ export function createProgram(
     .option("-o, --output <path>", "HTML output path")
     .addOption(
       new Option("-t, --theme <theme>", "render theme")
-        .choices([...THEME_NAMES])
-        .default("default"),
+        .choices([...THEME_NAMES]),
     )
     .option("--navigation", "show the right-side section navigator")
     .option("--no-open", "do not open the generated plan")
-    .addHelpText(
-      "after",
-      `
-Make HTML plans with consistent design for use by your agent.
-Run heple example to see an example plan.
-Run heple themes to choose a theme, then pass --theme <name> when rendering.
-`,
-    )
     .action(async (input: string | undefined, options: RenderCommandOptions) => {
       if (!input) {
-        program.outputHelp();
+        process.stdout.write(WELCOME_MESSAGE);
         return;
       }
       await renderCommand(input, options, dependencies);
@@ -96,8 +94,7 @@ Run heple themes to choose a theme, then pass --theme <name> when rendering.
     .option("-o, --output <path>", "HTML output path")
     .addOption(
       new Option("-t, --theme <theme>", "render theme")
-        .choices([...THEME_NAMES])
-        .default("default"),
+        .choices([...THEME_NAMES]),
     )
     .option("--no-navigation", "hide the right-side section navigator")
     .option("--no-open", "do not open the generated catalog")
@@ -139,11 +136,35 @@ Run heple themes to choose a theme, then pass --theme <name> when rendering.
 
   program
     .command("themes")
-    .description("List renderer themes")
-    .action(() => {
+    .description("Choose the default renderer theme (inspired by tweakcn)")
+    .addArgument(
+      new Argument("[theme]", "theme to set without the interactive selector")
+        .choices([...THEME_NAMES]),
+    )
+    .action(async (theme: ThemeName | undefined) => {
+      const currentTheme = await getDefaultTheme();
+      if (theme) {
+        await setDefaultTheme(theme);
+        process.stdout.write(`Themes are inspired by tweakcn.\nDefault theme changed to ${theme}.\n`);
+        return;
+      }
+
+      if (process.stdin.isTTY && process.stdout.isTTY) {
+        const selectedTheme = await selectTheme(currentTheme);
+        if (!selectedTheme) {
+          process.stdout.write("Theme selection cancelled.\n");
+          return;
+        }
+        await setDefaultTheme(selectedTheme);
+        process.stdout.write(`Default theme changed to ${selectedTheme}.\n`);
+        return;
+      }
+
+      process.stdout.write(`Themes are inspired by tweakcn.\nCurrent default: ${currentTheme}\n\n`);
       for (const theme of THEME_NAMES) {
         process.stdout.write(`${theme.padEnd(16)} ${themeDescriptions[theme]}\n`);
       }
+      process.stdout.write("\nRun heple themes in an interactive terminal to choose the default.\n");
     });
 
   program.showHelpAfterError();

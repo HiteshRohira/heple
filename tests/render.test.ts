@@ -49,6 +49,21 @@ describe("renderPlan", () => {
     for (const script of scripts) expect(() => new Function(script)).not.toThrow();
   });
 
+  it("uses readable mode-aware code colors and compact line spacing", () => {
+    for (const theme of ["default", "twitter"] as const) {
+      const html = renderPlan(plan, { theme });
+
+      expect(html).toContain("--code-text:");
+      expect(html).toContain("--code-muted:");
+      expect(html).toContain("--code-border:");
+      expect(html).toContain("--code-highlight:");
+      expect(html).toContain("border-bottom: 1px solid var(--code-border)");
+      expect(html).toContain("background: var(--code-highlight)");
+      expect(html).toContain("font: .84rem/1.42 var(--font-mono)");
+      expect(html).not.toContain("border-bottom: 1px solid #ffffff22");
+    }
+  });
+
   it("renders navigation only when requested and targets offset section containers", () => {
     const html = renderPlan(plan, { theme: "default", navigation: true });
 

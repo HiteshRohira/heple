@@ -267,8 +267,11 @@ function modeCss(mode: ThemeMode, dark: boolean): string {
   --accent-soft: ${mode.accentSoft};
   --code-bg: ${dark
     ? `color-mix(in srgb, ${mode.background} 72%, black)`
-    : `color-mix(in srgb, ${mode.background} 25%, ${mode.foreground})`};
-  --code-text: ${dark ? mode.foreground : mode.background};
+    : `color-mix(in srgb, ${mode.surface} 88%, ${mode.raised})`};
+  --code-text: ${mode.foreground};
+  --code-muted: color-mix(in srgb, ${mode.foreground} ${dark ? "62%" : "58%"}, var(--code-bg));
+  --code-border: color-mix(in srgb, ${mode.foreground} ${dark ? "18%" : "14%"}, var(--code-bg));
+  --code-highlight: color-mix(in srgb, ${mode.accent} ${dark ? "22%" : "11%"}, var(--code-bg));
   --info: ${mode.accent};
   --info-soft: color-mix(in srgb, ${mode.accent} ${dark ? "20%" : "12%"}, ${mode.surface});
   --success: ${dark ? "#55d6a5" : "#16805a"};
