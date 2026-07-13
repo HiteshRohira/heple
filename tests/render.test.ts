@@ -17,11 +17,11 @@ beforeAll(async () => {
 
 describe("renderPlan", () => {
   it("is deterministic for the same plan and theme", () => {
-    expect(renderPlan(plan, { theme: "paper" })).toBe(renderPlan(plan, { theme: "paper" }));
+    expect(renderPlan(plan, { theme: "signal" })).toBe(renderPlan(plan, { theme: "signal" }));
   });
 
   it("produces self-contained semantic HTML", () => {
-    const html = renderPlan(plan, { theme: "paper" });
+    const html = renderPlan(plan, { theme: "signal" });
 
     expect(html).toContain("<!doctype html>");
     expect(html).not.toContain('<nav class="toc"');
@@ -29,16 +29,21 @@ describe("renderPlan", () => {
     expect(html).toContain("<table>");
     expect(html).toContain('class="copy-code"');
     expect(html).toContain("navigator.clipboard.writeText");
+    expect(html).toContain('class="mode-toggle"');
+    expect(html).toContain('data-mode="dark"');
+    expect(html).toContain('localStorage.setItem("heple-mode"');
     expect(html).not.toMatch(/https:\/\/[^\"]+\.(css|js)/);
     expect(html).not.toMatch(/<dl|<dt|<dd/);
 
-    const script = html.match(/<script>([\s\S]+)<\/script>/)?.[1];
-    expect(script).toBeDefined();
-    expect(() => new Function(script ?? "")).not.toThrow();
+    const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(
+      (match) => match[1] ?? "",
+    );
+    expect(scripts).toHaveLength(2);
+    for (const script of scripts) expect(() => new Function(script)).not.toThrow();
   });
 
   it("renders navigation only when requested and targets offset section containers", () => {
-    const html = renderPlan(plan, { theme: "paper", navigation: true });
+    const html = renderPlan(plan, { theme: "signal", navigation: true });
 
     expect(html).toContain('<nav class="toc" aria-label="Plan sections" tabindex="0">');
     expect(html).toContain('class="toc-dots"');
@@ -58,7 +63,7 @@ describe("renderPlan", () => {
         },
       ],
     };
-    const html = renderPlan(hostile, { theme: "midnight" });
+    const html = renderPlan(hostile, { theme: "orchid" });
 
     expect(html).not.toContain("<script>alert(1)</script>");
     expect(html).not.toContain("<img src=x");

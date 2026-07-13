@@ -7,7 +7,8 @@
     "heple": "./dist/cli.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "example.json"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",

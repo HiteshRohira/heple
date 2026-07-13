@@ -1,0 +1,251 @@
+{
+  "version": "1",
+  "title": "The heple element catalog",
+  "summary": "A compact reference document containing every v1 block, inline style, state, and optional presentation field.",
+  "language": "en",
+  "facts": [
+    { "label": "Purpose", "value": "Element reference" },
+    { "label": "Schema", "value": "Version 1" },
+    { "label": "Coverage", "value": "All v1 primitives" }
+  ],
+  "blocks": [
+    {
+      "type": "section",
+      "title": "Headings and text",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "content": [
+            { "type": "text", "text": "This is a paragraph with " },
+            { "type": "strong", "text": "strong text" },
+            { "type": "text", "text": ", " },
+            { "type": "emphasis", "text": "emphasized text" },
+            { "type": "text", "text": ", inline " },
+            { "type": "code", "text": "code()" },
+            { "type": "text", "text": ", and a " },
+            { "type": "link", "text": "safe link", "href": "https://github.com/HiteshRohira/heple" },
+            { "type": "text", "text": "." }
+          ]
+        },
+        {
+          "type": "section",
+          "title": "This is a nested heading",
+          "blocks": [
+            {
+              "type": "paragraph",
+              "content": [
+                { "type": "text", "text": "Section nesting determines heading levels automatically. Models never choose h1 through h6." }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "title": "Lists and facts",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "content": [{ "type": "text", "text": "This is an unordered list:" }]
+        },
+        {
+          "type": "list",
+          "style": "unordered",
+          "items": [
+            { "content": [{ "type": "text", "text": "A concise item" }] },
+            { "content": [{ "type": "strong", "text": "An emphasized item" }] },
+            { "content": [{ "type": "text", "text": "An item containing " }, { "type": "code", "text": "inline code" }] }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [{ "type": "text", "text": "This is an ordered list:" }]
+        },
+        {
+          "type": "list",
+          "style": "ordered",
+          "items": [
+            { "content": [{ "type": "text", "text": "Validate the JSON" }] },
+            { "content": [{ "type": "text", "text": "Render the document" }] },
+            { "content": [{ "type": "text", "text": "Open it in the browser" }] }
+          ]
+        },
+        {
+          "type": "facts",
+          "items": [
+            { "label": "This is a fact", "value": "Label and value" },
+            { "label": "Layout", "value": "Responsive grid" },
+            { "label": "Source", "value": "Structured JSON" }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "title": "Callouts",
+      "blocks": [
+        {
+          "type": "callout",
+          "tone": "note",
+          "title": "Note callout",
+          "content": [{ "type": "text", "text": "Use this for useful context that does not imply urgency." }]
+        },
+        {
+          "type": "callout",
+          "tone": "info",
+          "title": "Information callout",
+          "content": [{ "type": "text", "text": "Use this to explain a relevant implementation detail." }]
+        },
+        {
+          "type": "callout",
+          "tone": "warning",
+          "title": "Warning callout",
+          "content": [{ "type": "text", "text": "Use this when the reader needs to notice a risk or constraint." }]
+        },
+        {
+          "type": "callout",
+          "tone": "success",
+          "title": "Success callout",
+          "content": [{ "type": "text", "text": "Use this for a confirmed outcome or completed checkpoint." }]
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "title": "Steps and statuses",
+      "blocks": [
+        {
+          "type": "steps",
+          "items": [
+            {
+              "title": "Planned step",
+              "description": "This step has not started.",
+              "status": "planned",
+              "meta": [{ "label": "Owner", "value": "Platform" }]
+            },
+            {
+              "title": "Active step",
+              "description": "This step is currently in progress.",
+              "status": "active",
+              "meta": [{ "label": "Window", "value": "This week" }]
+            },
+            {
+              "title": "Completed step",
+              "description": "This step has finished successfully.",
+              "status": "done"
+            },
+            {
+              "title": "Blocked step",
+              "description": "This step cannot proceed yet.",
+              "status": "blocked"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            { "type": "text", "text": "Statuses also work inline: " },
+            { "type": "status", "value": "planned" },
+            { "type": "text", "text": " " },
+            { "type": "status", "value": "active" },
+            { "type": "text", "text": " " },
+            { "type": "status", "value": "done" },
+            { "type": "text", "text": " " },
+            { "type": "status", "value": "blocked" }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "title": "Tables and severity",
+      "blocks": [
+        {
+          "type": "table",
+          "caption": "This table demonstrates captions, alignment, and every severity",
+          "columns": [
+            { "label": "Risk", "align": "left" },
+            { "label": "Severity", "align": "center" },
+            { "label": "Score", "align": "right" }
+          ],
+          "rows": [
+            {
+              "cells": [
+                [{ "type": "text", "text": "Minor visual inconsistency" }],
+                [{ "type": "severity", "value": "low" }],
+                [{ "type": "text", "text": "1" }]
+              ]
+            },
+            {
+              "cells": [
+                [{ "type": "text", "text": "Incomplete migration notes" }],
+                [{ "type": "severity", "value": "medium" }],
+                [{ "type": "text", "text": "2" }]
+              ]
+            },
+            {
+              "cells": [
+                [{ "type": "text", "text": "Breaking API change" }],
+                [{ "type": "severity", "value": "high" }],
+                [{ "type": "text", "text": "3" }]
+              ]
+            },
+            {
+              "cells": [
+                [{ "type": "strong", "text": "Potential data loss" }],
+                [{ "type": "severity", "value": "critical" }],
+                [{ "type": "text", "text": "4" }]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "title": "Code",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "content": [{ "type": "text", "text": "This is a code block with a filename, language, caption, highlighted lines, line numbers, and copy control." }]
+        },
+        {
+          "type": "code",
+          "language": "typescript",
+          "filename": "src/example.ts",
+          "caption": "Highlighted lines draw attention without changing the source copied to the clipboard.",
+          "highlightLines": [2, 3],
+          "code": "export function greet(name: string) {\n  const message = `Hello, ${name}`;\n  return message;\n}"
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "title": "Details",
+      "blocks": [
+        {
+          "type": "details",
+          "summary": "This is a closed details element",
+          "blocks": [
+            {
+              "type": "paragraph",
+              "content": [{ "type": "text", "text": "Details use native browser disclosure behavior and require no custom JavaScript." }]
+            }
+          ]
+        },
+        {
+          "type": "details",
+          "summary": "This details element starts open",
+          "open": true,
+          "blocks": [
+            {
+              "type": "paragraph",
+              "content": [{ "type": "text", "text": "Set open to true when supporting information should be visible initially." }]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

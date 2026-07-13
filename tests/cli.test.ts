@@ -27,7 +27,7 @@ describe("heple CLI", () => {
     const result = await runCli([
       "fixtures/implementation-plan.json",
       "--theme",
-      "midnight",
+      "circuit",
       "--output",
       output,
       "--no-open",
@@ -35,7 +35,7 @@ describe("heple CLI", () => {
 
     expect(result.stdout).toBe(`Created ${output}\n`);
     const html = await readFile(output, "utf8");
-    expect(html).toContain("--bg: #11151c");
+    expect(html).toContain("--bg: #f2f6ec");
     expect(html).not.toContain('<nav class="toc"');
   });
 
@@ -55,8 +55,20 @@ describe("heple CLI", () => {
 
   it("prints available themes", async () => {
     const result = await runCli(["themes"]);
-    expect(result.stdout).toContain("paper");
-    expect(result.stdout).toContain("midnight");
-    expect(result.stdout).toContain("system");
+    expect(result.stdout).toContain("signal");
+    expect(result.stdout).toContain("orchid");
+    expect(result.stdout).toContain("circuit");
+  });
+
+  it("renders the shipped exhaustive example with navigation enabled", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "heple-test-"));
+    const output = join(directory, "catalog.html");
+    const result = await runCli(["example", "--output", output, "--no-open"]);
+
+    expect(result.stdout).toBe(`Created ${output}\n`);
+    const html = await readFile(output, "utf8");
+    expect(html).toContain("The heple element catalog");
+    expect(html).toContain('<nav class="toc"');
+    expect(html).toContain('class="mode-toggle"');
   });
 });

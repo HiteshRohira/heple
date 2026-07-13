@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { resolve } from "node:path";
 import { Command, Option } from "commander";
 import open from "open";
@@ -37,10 +37,11 @@ async function renderCommand(
   inputPath: string,
   options: RenderCommandOptions,
   dependencies: CliDependencies,
+  fallbackOutputPath?: string,
 ): Promise<void> {
   const input = await readInput(inputPath);
   const plan = normalizePlan(assertValid(input));
-  const outputPath = resolve(options.output ?? defaultOutputPath(inputPath));
+  const outputPath = resolve(options.output ?? fallbackOutputPath ?? defaultOutputPath(inputPath));
   const html = renderPlan(plan, {
     theme: options.theme,
     navigation: options.navigation ?? false,
@@ -62,12 +63,13 @@ export function createProgram(
     .name("heple")
     .description("Turn structured JSON plans into deterministic HTML")
     .version(VERSION)
+    .enablePositionalOptions()
     .argument("[input]", "plan JSON file, or - for stdin")
     .option("-o, --output <path>", "HTML output path")
     .addOption(
       new Option("-t, --theme <theme>", "render theme")
         .choices([...THEME_NAMES])
-        .default("paper"),
+        .default("signal"),
     )
     .option("--navigation", "show the right-side section navigator")
     .option("--no-open", "do not open the generated plan")
@@ -77,6 +79,30 @@ export function createProgram(
         return;
       }
       await renderCommand(input, options, dependencies);
+    });
+
+  program
+    .command("example")
+    .description("Open the shipped catalog of every v1 element")
+    .option("-o, --output <path>", "HTML output path")
+    .addOption(
+      new Option("-t, --theme <theme>", "render theme")
+        .choices([...THEME_NAMES])
+        .default("signal"),
+    )
+    .option("--no-navigation", "hide the right-side section navigator")
+    .option("--no-open", "do not open the generated catalog")
+    .action(async (options: RenderCommandOptions | Command) => {
+      const parsedOptions = options instanceof Command
+        ? (options.opts() as RenderCommandOptions)
+        : options;
+      const examplePath = fileURLToPath(new URL("../example.json", import.meta.url));
+      await renderCommand(
+        examplePath,
+        parsedOptions,
+        dependencies,
+        resolve("heple-example.html"),
+      );
     });
 
   program

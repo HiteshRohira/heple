@@ -27,7 +27,7 @@ export const BLOCK_TYPES = [
   "details",
 ] as const;
 
-export const THEME_NAMES = ["paper", "midnight", "system"] as const;
+export const THEME_NAMES = ["signal", "orchid", "circuit"] as const;
 export type ThemeName = (typeof THEME_NAMES)[number];
 
 export const InlineSchema = Type.Union([

@@ -38,10 +38,11 @@ The intended capability is conceptually:
 
 ```sh
 heple plan.json                         # validate, render, and open
-heple plan.json --theme paper           # choose a renderer-owned theme
+heple plan.json --theme signal          # choose a renderer-owned theme
 heple plan.json --output ./plan.html    # choose the artifact path
 heple plan.json --navigation            # opt into the right-side section navigator
 heple plan.json --no-open               # render without opening a browser
+heple example                            # open the shipped v1 element catalog
 heple schema                            # print the machine-readable JSON Schema
 heple prompt                            # print model instructions and the schema
 heple validate plan.json                # validate without rendering
@@ -96,7 +97,7 @@ Before adding a schema field, answer:
 
 - Generate valid, semantic HTML with stable structure.
 - Keep styling renderer-owned and tokenized.
-- Prefer CSS for layout and state; use JavaScript only for bounded renderer-owned enhancements such as copying code.
+- Prefer CSS for layout and state; use JavaScript only for bounded renderer-owned enhancements such as copying code and switching light/dark mode.
 - The core content must remain available without JavaScript.
 - Avoid third-party runtime dependencies and remote fonts/assets in rendered artifacts unless a future product requirement explicitly changes the offline and privacy contract.
 - Never use raw model content as an HTML attribute, DOM id, class name, style, or script value without appropriate normalization and escaping.
@@ -145,9 +146,11 @@ The v1 public vocabulary is intentionally small:
 
 - block primitives: `section`, `paragraph`, `list`, `facts`, `callout`, `steps`, `table`, `code`, and `details`;
 - inline primitives: `text`, `link`, `strong`, `emphasis`, `code`, `status`, and `severity`;
-- themes: `paper`, `midnight`, and `system`.
+- themes: `signal`, `orchid`, and `circuit`.
 
-Sections determine heading levels; the model does not select `h1` through `h6`. Details render with native `<details>` and `<summary>` and require no custom JavaScript. Lists are ordered or unordered; v1 has no checklist primitive. Facts and step metadata use ordinary grouped text rather than HTML description lists. Code blocks may include the renderer-owned copy control. Theme choice and section navigation are renderer configuration, not model-authored document content. Navigation is off by default and, when enabled, appears as a fixed right-side disclosure rail without reducing content width.
+Sections determine heading levels; the model does not select `h1` through `h6`. Details render with native `<details>` and `<summary>` and require no custom JavaScript. Lists are ordered or unordered; v1 has no checklist primitive. Facts and step metadata use ordinary grouped text rather than HTML description lists. Code blocks may include the renderer-owned copy control. Every theme defines paired light/dark semantic tokens and the artifact includes a visible mode toggle. Theme choice and section navigation are renderer configuration, not model-authored document content. Navigation is off by default and, when enabled, appears as a fixed right-side disclosure rail without reducing content width.
+
+`example.json` is a shipped compatibility fixture and user-facing element catalog. Keep it exhaustive: every supported block and inline primitive, bounded variant, and optional renderer field must appear at least once. `heple example` renders it with navigation enabled by default.
 
 For each change:
 
@@ -191,9 +194,15 @@ The JSON document is the source of truth. HTML is a deterministic view of it.
 
 ## Product references
 
-The product direction is informed by Thariq Shihipar's “The Unreasonable Effectiveness of HTML” and its example gallery:
+The medium-level product direction is informed by Thariq Shihipar's “The Unreasonable Effectiveness of HTML” and its example gallery:
 
 - https://x.com/trq212/status/2052809885763747935
 - https://thariqs.github.io/html-effectiveness/
 
-Use these references to understand why spatial, visual, interactive documents can outperform walls of Markdown. Do not treat their individual layouts as templates to clone. heple's job is to turn that expressive insight into a stable, constrained system.
+Use these references only to understand why spatial, visual, interactive documents can outperform walls of Markdown. Do not borrow their visual identity or treat their individual layouts as templates.
+
+Theme architecture is informed by tweakcn's separation of semantic colors, paired light/dark modes, typography, radius, and shadows:
+
+- https://github.com/jnsahaj/tweakcn
+
+heple themes must remain original presets rather than copies of tweakcn themes. heple's job is to turn broad theme-system ideas into a stable, constrained document renderer.

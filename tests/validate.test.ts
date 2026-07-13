@@ -1,9 +1,14 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
+import { BLOCK_TYPES, INLINE_TYPES } from "../src/schema.js";
 import { validatePlan } from "../src/validate.js";
 
 async function fixture(): Promise<unknown> {
   return JSON.parse(await readFile("fixtures/implementation-plan.json", "utf8"));
+}
+
+async function example(): Promise<Record<string, unknown>> {
+  return JSON.parse(await readFile("example.json", "utf8")) as Record<string, unknown>;
 }
 
 describe("validatePlan", () => {
@@ -16,6 +21,24 @@ describe("validatePlan", () => {
 
   it("accepts the complete implementation-plan fixture", async () => {
     expect(validatePlan(await fixture())).toMatchObject({ ok: true });
+  });
+
+  it("ships a valid example covering every block and inline primitive", async () => {
+    const input = await example();
+    expect(validatePlan(input)).toMatchObject({ ok: true });
+
+    const serialized = JSON.stringify(input);
+    for (const type of BLOCK_TYPES) expect(serialized).toContain(`\"type\":\"${type}\"`);
+    for (const type of INLINE_TYPES) expect(serialized).toContain(`\"type\":\"${type}\"`);
+    for (const value of ["planned", "active", "done", "blocked"]) {
+      expect(serialized).toContain(`\"${value}\"`);
+    }
+    for (const value of ["low", "medium", "high", "critical"]) {
+      expect(serialized).toContain(`\"${value}\"`);
+    }
+    for (const tone of ["note", "info", "warning", "success"]) {
+      expect(serialized).toContain(`\"${tone}\"`);
+    }
   });
 
   it("rejects unknown properties", async () => {
