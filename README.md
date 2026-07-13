@@ -1,5 +1,9 @@
 # heple
 
+Make HTML plans with consistent design. Always.
+
+To be used by your agents.
+
 heple turns a structured JSON plan into deterministic, self-contained HTML and opens it in your default browser.
 
 ## Installation

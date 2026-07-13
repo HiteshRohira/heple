@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdtemp, readFile } from "node:fs/promises";
+import { mkdtemp, readFile, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { promisify } from "node:util";
@@ -18,6 +18,29 @@ describe("heple CLI", () => {
   it("prints the package version", async () => {
     const result = await runCli(["--version"]);
     expect(result.stdout).toBe("0.0.1\n");
+  });
+
+  it("runs when invoked through a global-install-style symlink", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "heple-test-"));
+    const linkedCli = join(directory, "heple");
+    await symlink(cli, linkedCli);
+
+    const result = await execFileAsync(
+      process.execPath,
+      ["--import", "tsx", linkedCli, "--version"],
+      { cwd: process.cwd() },
+    );
+
+    expect(result.stdout).toBe("0.0.1\n");
+    expect(result.stderr).toBe("");
+  });
+
+  it("shows setup guidance with the root help", async () => {
+    const result = await runCli([]);
+
+    expect(result.stdout).toContain("Make HTML plans with consistent design");
+    expect(result.stdout).toContain("Run heple example to see an example plan.");
+    expect(result.stdout).toContain("Run heple themes to choose a theme");
   });
 
   it("validates a plan", async () => {

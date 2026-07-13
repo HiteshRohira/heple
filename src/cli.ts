@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { realpathSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 import { Command, Option } from "commander";
 import open from "open";
@@ -73,6 +74,14 @@ export function createProgram(
     )
     .option("--navigation", "show the right-side section navigator")
     .option("--no-open", "do not open the generated plan")
+    .addHelpText(
+      "after",
+      `
+Make HTML plans with consistent design for use by your agent.
+Run heple example to see an example plan.
+Run heple themes to choose a theme, then pass --theme <name> when rendering.
+`,
+    )
     .action(async (input: string | undefined, options: RenderCommandOptions) => {
       if (!input) {
         program.outputHelp();
@@ -146,7 +155,7 @@ export async function run(argv = process.argv): Promise<void> {
 }
 
 const isEntryPoint = process.argv[1]
-  ? import.meta.url === pathToFileURL(resolve(process.argv[1])).href
+  ? realpathSync(fileURLToPath(import.meta.url)) === realpathSync(resolve(process.argv[1]))
   : false;
 
 if (isEntryPoint) {
