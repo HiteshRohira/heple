@@ -12,6 +12,11 @@ function configPath(): string {
   return join(configHome, "heple", "config.json");
 }
 
+export function getExampleOutputPath(): string {
+  const cacheHome = process.env.XDG_CACHE_HOME || join(homedir(), ".cache");
+  return join(cacheHome, "heple", "example.html");
+}
+
 function isThemeName(value: unknown): value is ThemeName {
   return typeof value === "string" && THEME_NAMES.some((theme) => theme === value);
 }

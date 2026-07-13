@@ -36,7 +36,7 @@ heple prompt
 heple themes # choose and save the default theme
 ```
 
-Use `heple prompt` to give a model both the authoring instructions and canonical JSON Schema. The plan format accepts a constrained set of semantic blocks and inline content; it never accepts arbitrary HTML, CSS, or JavaScript.
+Use `heple prompt` to give an agent concise authoring instructions plus the commands needed to validate and render its `plan.json`. Run `heple schema` separately when the full canonical JSON Schema is needed. The plan format accepts a constrained set of semantic blocks and inline content; it never accepts arbitrary HTML, CSS, or JavaScript.
 
 Run `heple themes`, move with the up and down arrow keys, and press Enter to save your default theme. An explicit `--theme` option overrides that default for one render.
 
@@ -44,7 +44,7 @@ Available themes are `default`, `bubblegum`, `caffeine`, `claude`, `claymorphism
 
 The themes are inspired by tweakcn. The curated palettes adapt tokens from tweakcn's [pinned preset collection](https://github.com/jnsahaj/tweakcn/blob/f89566aef1b6d71d0f72b998d16a5980bea10c98/utils/theme-presets.ts) to heple's smaller renderer vocabulary.
 
-Run `heple example` to render and open the shipped [element catalog](./example.json). It demonstrates every v1 block, inline primitive, callout tone, status, severity, table alignment, and optional rendering field. The example enables section navigation by default; pass `--no-navigation` to hide it.
+Run `heple example` to render and open the shipped [element catalog](./example.json). The generated page is overwritten at `$XDG_CACHE_HOME/heple/example.html`, or `~/.cache/heple/example.html` when `XDG_CACHE_HOME` is unset, so it never writes into the current project. It uses the saved default theme and demonstrates every v1 block, inline primitive, callout tone, status, severity, table alignment, and optional rendering field. The example enables section navigation by default; pass `--no-navigation` to hide it.
 
 Title, summary, and blocks are optional. Omitted regions do not render placeholders. Section navigation is also off by default; pass `--navigation` to enable the right-side hover rail.
 

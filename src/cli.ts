@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 import { Argument, Command, Option } from "commander";
 import open from "open";
-import { getDefaultTheme, setDefaultTheme } from "./config.js";
+import { getDefaultTheme, getExampleOutputPath, setDefaultTheme } from "./config.js";
 import { defaultOutputPath, readInput, writeArtifact } from "./io.js";
 import { normalizePlan } from "./normalize.js";
 import { getModelPrompt } from "./prompt.js";
@@ -90,8 +90,7 @@ export function createProgram(
 
   program
     .command("example")
-    .description("Open the shipped catalog of every v1 element")
-    .option("-o, --output <path>", "HTML output path")
+    .description("Render and open the cached catalog of every v1 element")
     .addOption(
       new Option("-t, --theme <theme>", "render theme")
         .choices([...THEME_NAMES]),
@@ -107,7 +106,7 @@ export function createProgram(
         examplePath,
         parsedOptions,
         dependencies,
-        resolve("heple-example.html"),
+        getExampleOutputPath(),
       );
     });
 

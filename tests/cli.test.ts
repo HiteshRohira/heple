@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdtemp, readFile, symlink } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { promisify } from "node:util";
@@ -7,10 +7,11 @@ import { describe, expect, it } from "vitest";
 
 const execFileAsync = promisify(execFile);
 const cli = resolve("src/cli.ts");
+const tsx = import.meta.resolve("tsx");
 
-async function runCli(args: string[], env?: NodeJS.ProcessEnv) {
-  return execFileAsync(process.execPath, ["--import", "tsx", cli, ...args], {
-    cwd: process.cwd(),
+async function runCli(args: string[], env?: NodeJS.ProcessEnv, cwd = process.cwd()) {
+  return execFileAsync(process.execPath, ["--import", tsx, cli, ...args], {
+    cwd,
     env: env ? { ...process.env, ...env } : process.env,
   });
 }
@@ -127,13 +128,38 @@ If you are a human, run heple example.
 
   it("renders the shipped exhaustive example with navigation enabled", async () => {
     const directory = await mkdtemp(join(tmpdir(), "heple-test-"));
-    const output = join(directory, "catalog.html");
-    const result = await runCli(["example", "--output", output, "--no-open"]);
+    const cacheHome = join(directory, "cache");
+    const output = join(cacheHome, "heple", "example.html");
+    const result = await runCli(["example", "--no-open"], {
+      XDG_CACHE_HOME: cacheHome,
+      XDG_CONFIG_HOME: join(directory, "config"),
+    });
 
     expect(result.stdout).toBe(`Created ${output}\n`);
     const html = await readFile(output, "utf8");
     expect(html).toContain("The heple element catalog");
     expect(html).toContain('<nav class="toc"');
     expect(html).toContain('class="mode-toggle"');
+  });
+
+  it("overwrites one cached example without writing to the current directory", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "heple-test-"));
+    const workingDirectory = join(directory, "workspace");
+    const cacheHome = join(directory, "cache");
+    const configHome = join(directory, "config");
+    const output = join(cacheHome, "heple", "example.html");
+    const env = { XDG_CACHE_HOME: cacheHome, XDG_CONFIG_HOME: configHome };
+    await mkdir(workingDirectory);
+    await runCli(["themes", "twitter"], env, workingDirectory);
+
+    const firstRun = await runCli(["example", "--no-open"], env, workingDirectory);
+    expect(firstRun.stdout).toBe(`Created ${output}\n`);
+    expect(await readFile(output, "utf8")).toContain("--accent: #1e9df1");
+    await expect(readFile(join(workingDirectory, "heple-example.html"), "utf8"))
+      .rejects.toMatchObject({ code: "ENOENT" });
+
+    await writeFile(output, "stale example", "utf8");
+    await runCli(["example", "--no-open"], env, workingDirectory);
+    expect(await readFile(output, "utf8")).toContain("The heple element catalog");
   });
 });

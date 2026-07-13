@@ -124,9 +124,14 @@ describe("model contract", () => {
     });
   });
 
-  it("derives prompt vocabulary from the exported block types", () => {
+  it("provides a concise authoring and rendering workflow", () => {
     const prompt = getModelPrompt();
     for (const type of BLOCK_TYPES) expect(prompt).toContain(type);
-    expect(prompt).toContain(JSON.stringify(getJsonSchema(), null, 2));
+    expect(prompt).toContain("heple validate plan.json");
+    expect(prompt).toContain("heple plan.json");
+    expect(prompt).toContain("heple plan.json --output path/to/plan.html --no-open");
+    expect(prompt).toContain("Run heple schema only if you need the exact JSON Schema.");
+    expect(prompt).not.toContain(JSON.stringify(getJsonSchema(), null, 2));
+    expect(prompt.length).toBeLessThan(1_500);
   });
 });

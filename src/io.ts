@@ -1,4 +1,4 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { basename, dirname, extname, resolve } from "node:path";
 
 export async function readInput(inputPath: string): Promise<unknown> {
@@ -28,5 +28,6 @@ export function defaultOutputPath(inputPath: string): string {
 }
 
 export async function writeArtifact(path: string, html: string): Promise<void> {
+  await mkdir(dirname(path), { recursive: true });
   await writeFile(path, html, "utf8");
 }
