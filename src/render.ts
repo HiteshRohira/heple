@@ -217,13 +217,13 @@ th { color: var(--muted); font-size: .75rem; letter-spacing: .06em; text-transfo
 tbody tr:last-child td { border-bottom: 0; }
 .align-center { text-align: center; }
 .align-right { text-align: right; }
-.code-block { margin: 24px 0; overflow: hidden; border: 1px solid var(--border); border-radius: max(4px, calc(var(--radius) * .7)); background: var(--code-bg); color: var(--code-text); }
+.code-block { margin: 24px 0; overflow: hidden; border: 1px solid var(--code-border); border-radius: max(4px, calc(var(--radius) * .7)); background: var(--code-bg); color: var(--code-text); }
 .code-toolbar { min-height: 40px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 10px 6px 14px; border-bottom: 1px solid var(--code-border); }
 .code-label { overflow: hidden; font-family: var(--font-mono); font-size: .78rem; text-overflow: ellipsis; white-space: nowrap; }
 .copy-code { flex: 0 0 auto; margin-left: auto; padding: 5px 9px; border: 1px solid var(--code-border); border-radius: 6px; background: transparent; color: inherit; font: 700 .72rem/1 var(--font-sans); cursor: pointer; }
 .copy-code:hover { background: var(--code-highlight); }
 .copy-code:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-pre { margin: 0; padding: 10px 0; overflow-x: auto; font: .84rem/1.42 var(--font-mono); }
+pre { margin: 0; padding: 10px 0; overflow-x: auto; font: .84rem/.75rem var(--font-mono); }
 .code-line { display: grid; grid-template-columns: 3.2rem max-content; min-width: 100%; padding: 0 18px 0 0; }
 .code-line.highlighted { background: var(--code-highlight); box-shadow: inset 3px 0 var(--accent); }
 .line-number { padding-right: 14px; color: var(--code-muted); text-align: right; user-select: none; }

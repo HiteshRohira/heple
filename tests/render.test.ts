@@ -3,7 +3,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { getModelPrompt } from "../src/prompt.js";
 import { normalizePlan } from "../src/normalize.js";
 import { renderPlan } from "../src/render.js";
-import { BLOCK_TYPES, getJsonSchema, type PlanDocument } from "../src/schema.js";
+import { BLOCK_TYPES, getJsonSchema, THEME_NAMES, type PlanDocument } from "../src/schema.js";
 import { validatePlan } from "../src/validate.js";
 
 let plan: PlanDocument;
@@ -49,17 +49,19 @@ describe("renderPlan", () => {
     for (const script of scripts) expect(() => new Function(script)).not.toThrow();
   });
 
-  it("uses readable mode-aware code colors and compact line spacing", () => {
-    for (const theme of ["default", "twitter"] as const) {
+  it("uses readable mode-aware code colors and compact line spacing in every theme", () => {
+    for (const theme of THEME_NAMES) {
       const html = renderPlan(plan, { theme });
 
+      expect(html).toMatch(/--code-bg: color-mix\(in srgb, [^\n]+ 90%, [^\n]+\);/);
       expect(html).toContain("--code-text:");
       expect(html).toContain("--code-muted:");
       expect(html).toContain("--code-border:");
       expect(html).toContain("--code-highlight:");
       expect(html).toContain("border-bottom: 1px solid var(--code-border)");
+      expect(html).toContain("border: 1px solid var(--code-border)");
       expect(html).toContain("background: var(--code-highlight)");
-      expect(html).toContain("font: .84rem/1.42 var(--font-mono)");
+      expect(html).toContain("font: .84rem/.75rem var(--font-mono)");
       expect(html).not.toContain("border-bottom: 1px solid #ffffff22");
     }
   });
