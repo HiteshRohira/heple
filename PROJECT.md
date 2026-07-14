@@ -152,7 +152,7 @@ The v1 public vocabulary is intentionally small:
 
 - block primitives: `section`, `paragraph`, `list`, `callout`, `steps`, `table`, `code`, and `details`;
 - inline primitives: `text`, `link`, `strong`, `emphasis`, `code`, `status`, and `severity`;
-- themes: `default`, `bubblegum`, `caffeine`, `claude`, `claymorphism`, `neobrutalism`, `sage-garden`, `supabase`, `twitter`, `vercel`, `violet-bloom`, `modern-minimal`, and `mono`.
+- themes: `default`, `caffeine`, `claude`, `claymorphism`, `sage-garden`, `supabase`, `twitter`, `vercel`, `violet-bloom`, and `mono`.
 
 Sections determine heading levels; the model does not select `h1` through `h6`. Details render with native `<details>` and `<summary>` and require no custom JavaScript. Lists are ordered or unordered; v1 has no checklist primitive. Step metadata uses ordinary grouped text rather than HTML description lists. Code blocks may include the renderer-owned copy control. Every theme defines paired light/dark semantic tokens and the artifact includes a visible mode toggle. Theme choice and section navigation are renderer configuration, not model-authored document content. Navigation is off by default and, when enabled, appears as a fixed right-side disclosure rail without reducing content width.
 

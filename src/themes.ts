@@ -46,23 +46,6 @@ const themes: Record<ThemeName, ThemeDefinition> = {
       danger: "oklch(0.704 0.191 22.216)",
     },
   },
-  bubblegum: {
-    description: "Playful candy colors with crisp shadows",
-    radius: "0.4rem",
-    fontSans: `Poppins, ${sansFallback}`,
-    fontMono: `"Fira Code", ${monoFallback}`,
-    shadow: "3px 3px 0 hsl(325.78 58.18% 56.86% / 0.5)",
-    light: {
-      background: "#f6e6ee", foreground: "#5b5b5b", surface: "#fdedc9", raised: "#b2e1eb",
-      muted: "#7a7a7a", border: "#d04f99", accent: "#d04f99", accentForeground: "#ffffff",
-      accentSoft: "#fbe2a7", danger: "#f96f70",
-    },
-    dark: {
-      background: "#12242e", foreground: "#f3e3ea", surface: "#1c2e38", raised: "#24272b",
-      muted: "#e4a2b1", border: "#324859", accent: "#fbe2a7", accentForeground: "#12242e",
-      accentSoft: "#c67b96", danger: "#e35ea4",
-    },
-  },
   caffeine: {
     description: "Warm coffee neutrals and restrained contrast",
     radius: "0.5rem",
@@ -114,23 +97,6 @@ const themes: Record<ThemeName, ThemeDefinition> = {
       accentSoft: "#484441", danger: "#ef4444",
     },
   },
-  neobrutalism: {
-    description: "Hard edges, primary colors, and offset shadows",
-    radius: "0px",
-    fontSans: `"DM Sans", ${sansFallback}`,
-    fontMono: `"Space Mono", ${monoFallback}`,
-    shadow: "4px 4px 0 currentColor",
-    light: {
-      background: "#ffffff", foreground: "#000000", surface: "#ffffff", raised: "#f0f0f0",
-      muted: "#333333", border: "#000000", accent: "#ff3333", accentForeground: "#ffffff",
-      accentSoft: "#ffff00", danger: "#000000",
-    },
-    dark: {
-      background: "#000000", foreground: "#ffffff", surface: "#333333", raised: "#1a1a1a",
-      muted: "#cccccc", border: "#ffffff", accent: "#ff6666", accentForeground: "#000000",
-      accentSoft: "#3399ff", danger: "#ffffff",
-    },
-  },
   "sage-garden": {
     description: "Quiet botanical neutrals with sage accents",
     radius: "0.35rem",
@@ -162,7 +128,7 @@ const themes: Record<ThemeName, ThemeDefinition> = {
     dark: {
       background: "#121212", foreground: "#e2e8f0", surface: "#171717", raised: "#1f1f1f",
       muted: "#a2a2a2", border: "#292929", accent: "#006239", accentForeground: "#dde8e3",
-      accentSoft: "#313131", danger: "#541c15",
+      accentSoft: "#313131", danger: "#ff7b6b",
     },
   },
   twitter: {
@@ -216,23 +182,6 @@ const themes: Record<ThemeName, ThemeDefinition> = {
       background: "#1a1b1e", foreground: "#f0f0f0", surface: "#222327", raised: "#2a2c33",
       muted: "#a0a0a0", border: "#33353a", accent: "#8c5cff", accentForeground: "#ffffff",
       accentSoft: "#1e293b", danger: "#f87171",
-    },
-  },
-  "modern-minimal": {
-    description: "Minimal blue product UI with compact geometry",
-    radius: "0.375rem",
-    fontSans: `Inter, ${sansFallback}`,
-    fontMono: `"JetBrains Mono", ${monoFallback}`,
-    shadow: "0 1px 3px color-mix(in srgb, black 10%, transparent)",
-    light: {
-      background: "#ffffff", foreground: "#333333", surface: "#ffffff", raised: "#f9fafb",
-      muted: "#6b7280", border: "#e5e7eb", accent: "#3b82f6", accentForeground: "#ffffff",
-      accentSoft: "#e0f2fe", danger: "#ef4444",
-    },
-    dark: {
-      background: "#171717", foreground: "#e5e5e5", surface: "#262626", raised: "#1f1f1f",
-      muted: "#a3a3a3", border: "#404040", accent: "#3b82f6", accentForeground: "#ffffff",
-      accentSoft: "#1e3a8a", danger: "#ef4444",
     },
   },
   mono: {

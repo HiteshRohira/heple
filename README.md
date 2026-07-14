@@ -6,6 +6,12 @@ To be used by your agents.
 
 heple turns a structured JSON plan into deterministic, self-contained HTML and opens it in your default browser.
 
+## Why to use it
+
+1. Consistent designs for your HTML plans
+2. Heavy savings on tokens
+3. I will be happy :)
+
 ## Installation
 
 heple requires Node.js 24 or newer.
@@ -40,7 +46,7 @@ Use `heple prompt` to give an agent concise authoring instructions plus the comm
 
 Run `heple themes`, move with the up and down arrow keys, and press Enter to save your default theme. An explicit `--theme` option overrides that default for one render.
 
-Available themes are `default`, `bubblegum`, `caffeine`, `claude`, `claymorphism`, `neobrutalism`, `sage-garden`, `supabase`, `twitter`, `vercel`, `violet-bloom`, `modern-minimal`, and `mono`. Every theme includes coordinated light and dark modes. Generated pages follow the device preference until the reader chooses a mode, then remember that choice locally.
+Available themes are `default`, `caffeine`, `claude`, `claymorphism`, `sage-garden`, `supabase`, `twitter`, `vercel`, `violet-bloom`, and `mono`. Every theme includes coordinated light and dark modes. Generated pages follow the device preference until the reader chooses a mode, then remember that choice locally.
 
 The themes are inspired by tweakcn. The curated palettes adapt tokens from tweakcn's [pinned preset collection](https://github.com/jnsahaj/tweakcn/blob/f89566aef1b6d71d0f72b998d16a5980bea10c98/utils/theme-presets.ts) to heple's smaller renderer vocabulary.
 
@@ -59,3 +65,5 @@ pnpm test
 pnpm build
 pnpm dev fixtures/implementation-plan.json --no-open
 ```
+
+One-off HTML design studies belong in the local `examples/` directory. The entire directory is intentionally gitignored so experimental pages cannot be committed accidentally; no generation or build step depends on it.

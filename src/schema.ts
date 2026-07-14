@@ -28,17 +28,14 @@ export const BLOCK_TYPES = [
 
 export const THEME_NAMES = [
   "default",
-  "bubblegum",
   "caffeine",
   "claude",
   "claymorphism",
-  "neobrutalism",
   "sage-garden",
   "supabase",
   "twitter",
   "vercel",
   "violet-bloom",
-  "modern-minimal",
   "mono",
 ] as const;
 export type ThemeName = (typeof THEME_NAMES)[number];

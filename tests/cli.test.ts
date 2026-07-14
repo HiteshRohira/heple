@@ -100,8 +100,6 @@ If you are a human, run heple example.
     const result = await runCli(["themes"]);
     expect(result.stdout).toContain("Themes are inspired by tweakcn.");
     expect(result.stdout).toContain("default");
-    expect(result.stdout).toContain("bubblegum");
-    expect(result.stdout).toContain("modern-minimal");
     expect(result.stdout).toContain("mono");
   });
 
