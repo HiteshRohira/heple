@@ -52,7 +52,7 @@ async function renderCommand(
   const outputPath = resolve(options.output ?? fallbackOutputPath ?? defaultOutputPath(inputPath));
   const html = renderPlan(plan, {
     theme: options.theme ?? await getDefaultTheme(),
-    navigation: options.navigation ?? false,
+    navigation: options.navigation ?? true,
   });
   await writeArtifact(outputPath, html);
   process.stdout.write(`Created ${outputPath}\n`);
@@ -78,7 +78,7 @@ export function createProgram(
       new Option("-t, --theme <theme>", "render theme")
         .choices([...THEME_NAMES]),
     )
-    .option("--navigation", "show the right-side section navigator")
+    .option("--no-navigation", "hide the right-side section navigator")
     .option("--no-open", "do not open the generated plan")
     .action(async (input: string | undefined, options: RenderCommandOptions) => {
       if (!input) {
@@ -128,7 +128,7 @@ export function createProgram(
 
   program
     .command("prompt")
-    .description("Print model instructions and the canonical schema")
+    .description("Print concise plan-authoring instructions for an agent")
     .action(() => {
       process.stdout.write(`${getModelPrompt()}\n`);
     });

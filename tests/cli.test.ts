@@ -79,21 +79,21 @@ If you are a human, run heple example.
     expect(result.stdout).toBe(`Created ${output}\n`);
     const html = await readFile(output, "utf8");
     expect(html).toContain("--bg: #f8f7f4");
-    expect(html).not.toContain('<nav class="toc"');
+    expect(html).toContain('<nav class="toc"');
   });
 
-  it("opts into the right-side navigator", async () => {
+  it("opts out of the right-side navigator", async () => {
     const directory = await mkdtemp(join(tmpdir(), "heple-test-"));
     const output = join(directory, "plan.html");
     await runCli([
       "fixtures/implementation-plan.json",
-      "--navigation",
+      "--no-navigation",
       "--output",
       output,
       "--no-open",
     ]);
 
-    expect(await readFile(output, "utf8")).toContain('<nav class="toc"');
+    expect(await readFile(output, "utf8")).not.toContain('<nav class="toc"');
   });
 
   it("prints available themes", async () => {

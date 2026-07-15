@@ -24,7 +24,7 @@ describe("renderPlan", () => {
     const html = renderPlan(plan, { theme: "default" });
 
     expect(html).toContain("<!doctype html>");
-    expect(html).not.toContain('<nav class="toc"');
+    expect(html).toContain('<nav class="toc"');
     expect(html).toContain("<details>");
     expect(html).toContain("<table>");
     expect(html).toContain('class="copy-code"');
@@ -66,8 +66,8 @@ describe("renderPlan", () => {
     }
   });
 
-  it("renders navigation only when requested and targets offset section containers", () => {
-    const html = renderPlan(plan, { theme: "default", navigation: true });
+  it("renders navigation by default and targets offset section containers", () => {
+    const html = renderPlan(plan, { theme: "default" });
 
     expect(html).toContain('<nav class="toc" aria-label="Plan sections" tabindex="0">');
     expect(html).toContain('class="toc-dots"');
@@ -75,6 +75,12 @@ describe("renderPlan", () => {
     expect(html).not.toContain('href="#section-1" target="_blank"');
     expect(html).toContain('<section class="section" id="section-1"');
     expect(html).toContain("scroll-margin-top: 28px");
+  });
+
+  it("omits navigation when disabled", () => {
+    const html = renderPlan(plan, { theme: "default", navigation: false });
+
+    expect(html).not.toContain('<nav class="toc"');
   });
 
   it("escapes every model-authored text position", () => {

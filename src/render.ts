@@ -342,7 +342,7 @@ const interactionScript = `<script>
 
 export function renderPlan(plan: PlanDocument, options: RenderOptions): string {
   const blocks = plan.blocks ?? [];
-  const toc = options.navigation ? collectToc(blocks) : [];
+  const toc = (options.navigation ?? true) ? collectToc(blocks) : [];
   const navigation = toc.length
     ? `<nav class="toc" aria-label="Plan sections" tabindex="0"><span class="toc-dots" aria-hidden="true">•••</span><div class="toc-panel"><strong class="toc-title">On this page</strong>${toc
         .map(

@@ -32,29 +32,15 @@ npx heple@latest plan.json
 ## Usage
 
 ```text
-heple plan.json
+heple plan.json # validate, render, and open a plan
 heple plan.json --theme sage-garden --output plan.html --no-open
-heple plan.json --navigation
-heple example
-heple validate plan.json
-heple schema
-heple prompt
+heple plan.json --no-navigation
+heple example # render and open the element catalog
+heple validate plan.json # validate a plan without rendering it
+heple schema # print the canonical JSON Schema
+heple prompt # print concise plan-authoring instructions for an agent
 heple themes # choose and save the default theme
 ```
-
-Use `heple prompt` to give an agent concise authoring instructions plus the commands needed to validate and render its `plan.json`. Run `heple schema` separately when the full canonical JSON Schema is needed. The plan format accepts a constrained set of semantic blocks and inline content; it never accepts arbitrary HTML, CSS, or JavaScript.
-
-Run `heple themes`, move with the up and down arrow keys, and press Enter to save your default theme. An explicit `--theme` option overrides that default for one render.
-
-Available themes are `default`, `caffeine`, `claude`, `claymorphism`, `sage-garden`, `supabase`, `twitter`, `vercel`, `violet-bloom`, and `mono`. Every theme includes coordinated light and dark modes. Generated pages follow the device preference until the reader chooses a mode, then remember that choice locally.
-
-The themes are inspired by tweakcn. The curated palettes adapt tokens from tweakcn's [pinned preset collection](https://github.com/jnsahaj/tweakcn/blob/f89566aef1b6d71d0f72b998d16a5980bea10c98/utils/theme-presets.ts) to heple's smaller renderer vocabulary.
-
-Run `heple example` to render and open the shipped [element catalog](./example.json). The generated page is overwritten at `$XDG_CACHE_HOME/heple/example.html`, or `~/.cache/heple/example.html` when `XDG_CACHE_HOME` is unset, so it never writes into the current project. It uses the saved default theme and demonstrates every v1 block, inline primitive, callout tone, status, severity, table alignment, and optional rendering field. The example enables section navigation by default; pass `--no-navigation` to hide it.
-
-Title, summary, and blocks are optional. Omitted regions do not render placeholders. Section navigation is also off by default; pass `--navigation` to enable the right-side hover rail.
-
-Model-authored links open in a new tab by default. Internal section navigation remains in the current tab.
 
 ## Development
 

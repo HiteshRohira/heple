@@ -46,11 +46,11 @@ The intended capability is conceptually:
 heple plan.json                         # validate, render, and open
 heple plan.json --theme default         # choose a renderer-owned theme
 heple plan.json --output ./plan.html    # choose the artifact path
-heple plan.json --navigation            # opt into the right-side section navigator
+heple plan.json --no-navigation         # hide the right-side section navigator
 heple plan.json --no-open               # render without opening a browser
 heple example                            # open the shipped v1 element catalog
 heple schema                            # print the machine-readable JSON Schema
-heple prompt                            # print model instructions and the schema
+heple prompt                            # print concise model authoring instructions
 heple validate plan.json                # validate without rendering
 heple themes                            # list the available themes
 ```
@@ -154,7 +154,7 @@ The v1 public vocabulary is intentionally small:
 - inline primitives: `text`, `link`, `strong`, `emphasis`, `code`, `status`, and `severity`;
 - themes: `default`, `caffeine`, `claude`, `claymorphism`, `sage-garden`, `supabase`, `twitter`, `vercel`, `violet-bloom`, and `mono`.
 
-Sections determine heading levels; the model does not select `h1` through `h6`. Details render with native `<details>` and `<summary>` and require no custom JavaScript. Lists are ordered or unordered; v1 has no checklist primitive. Step metadata uses ordinary grouped text rather than HTML description lists. Code blocks may include the renderer-owned copy control. Every theme defines paired light/dark semantic tokens and the artifact includes a visible mode toggle. Theme choice and section navigation are renderer configuration, not model-authored document content. Navigation is off by default and, when enabled, appears as a fixed right-side disclosure rail without reducing content width.
+Sections determine heading levels; the model does not select `h1` through `h6`. Details render with native `<details>` and `<summary>` and require no custom JavaScript. Lists are ordered or unordered; v1 has no checklist primitive. Step metadata uses ordinary grouped text rather than HTML description lists. Code blocks may include the renderer-owned copy control. Every theme defines paired light/dark semantic tokens and the artifact includes a visible mode toggle. Theme choice and section navigation are renderer configuration, not model-authored document content. Navigation is on by default and appears as a fixed right-side disclosure rail without reducing content width; users can hide it with `--no-navigation`.
 
 `example.json` is a shipped compatibility fixture and user-facing element catalog. Keep it exhaustive: every supported block and inline primitive, bounded variant, and optional renderer field must appear at least once. `heple example` renders it with navigation enabled by default.
 
