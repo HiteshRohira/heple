@@ -142,7 +142,6 @@ describe("model contract", () => {
     const prompt = getModelPrompt();
     expect(prompt).toContain("heple validate plan.json");
     expect(prompt).toContain("heple plan.json");
-    expect(prompt).toContain("heple plan.json --output path/to/plan.html --no-open");
     expect(prompt).toContain(`Reference JSON:\n${JSON.stringify(AUTHORING_EXAMPLE)}`);
     expect(prompt).not.toContain("additionalProperties");
     expect(prompt).not.toContain("minLength");

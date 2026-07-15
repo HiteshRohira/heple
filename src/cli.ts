@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { realpathSync } from "node:fs";
+import { readFileSync, realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 import { Argument, Command, Option } from "commander";
@@ -15,7 +15,15 @@ import { selectTheme } from "./theme-selector.js";
 import { themeDescriptions } from "./themes.js";
 import { formatValidationIssues, validatePlan } from "./validate.js";
 
-const VERSION = "0.0.1";
+const packageJson = JSON.parse(
+  readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+) as { version?: unknown };
+
+if (typeof packageJson.version !== "string") {
+  throw new Error("package.json must contain a version");
+}
+
+const VERSION = packageJson.version;
 const WELCOME_MESSAGE = `Make HTML plans with consistent design. heple turns a structured JSON plan into deterministic, self-contained HTML and opens it in your default browser.
 
 If you are an agent, run heple prompt to see what you have to do.

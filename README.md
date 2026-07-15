@@ -1,6 +1,6 @@
 # heple
 
-Make HTML plans with consistent design. Always.
+Make HTML plans with a good design. Always.
 
 To be used by your agents.
 
@@ -8,8 +8,8 @@ heple turns a structured JSON plan into deterministic, self-contained HTML and o
 
 ## Why to use it
 
-1. Consistent designs for your HTML plans
-2. Heavy savings on tokens
+1. Consistently good designs for your HTML plans
+2. Massive savings on tokens
 3. I will be happy :)
 
 ## Installation
@@ -53,3 +53,11 @@ pnpm dev fixtures/implementation-plan.json --no-open
 ```
 
 One-off HTML design studies belong in the local `examples/` directory. The entire directory is intentionally gitignored so experimental pages cannot be committed accidentally; no generation or build step depends on it.
+
+## Roadmap
+
+- [x] Add custom themes
+- [ ] Benchmarks for token savings
+- [ ] Dashboard to configure org-wide theming
+- [ ] Publish to your team or the world
+- [ ] Changelog for each plan

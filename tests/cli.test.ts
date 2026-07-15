@@ -8,6 +8,9 @@ import { describe, expect, it } from "vitest";
 const execFileAsync = promisify(execFile);
 const cli = resolve("src/cli.ts");
 const tsx = import.meta.resolve("tsx");
+const packageVersion = (
+  JSON.parse(await readFile("package.json", "utf8")) as { version: string }
+).version;
 
 async function runCli(args: string[], env?: NodeJS.ProcessEnv, cwd = process.cwd()) {
   return execFileAsync(process.execPath, ["--import", tsx, cli, ...args], {
@@ -19,7 +22,7 @@ async function runCli(args: string[], env?: NodeJS.ProcessEnv, cwd = process.cwd
 describe("heple CLI", () => {
   it("prints the package version", async () => {
     const result = await runCli(["--version"]);
-    expect(result.stdout).toBe("0.0.1\n");
+    expect(result.stdout).toBe(`${packageVersion}\n`);
   });
 
   it("runs when invoked through a global-install-style symlink", async () => {
@@ -33,7 +36,7 @@ describe("heple CLI", () => {
       { cwd: process.cwd() },
     );
 
-    expect(result.stdout).toBe("0.0.1\n");
+    expect(result.stdout).toBe(`${packageVersion}\n`);
     expect(result.stderr).toBe("");
   });
 
