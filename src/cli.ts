@@ -128,7 +128,7 @@ export function createProgram(
 
   program
     .command("prompt")
-    .description("Print plan-authoring instructions and the canonical schema")
+    .description("Print plan-authoring instructions and a compact format example")
     .action(() => {
       process.stdout.write(`${getModelPrompt()}\n`);
     });

@@ -1,9 +1,15 @@
 import { readFile } from "node:fs/promises";
 import { beforeAll, describe, expect, it } from "vitest";
-import { getModelPrompt } from "../src/prompt.js";
+import { AUTHORING_EXAMPLE, getModelPrompt } from "../src/prompt.js";
 import { normalizePlan } from "../src/normalize.js";
 import { renderPlan } from "../src/render.js";
-import { BLOCK_TYPES, getJsonSchema, THEME_NAMES, type PlanDocument } from "../src/schema.js";
+import {
+  BLOCK_TYPES,
+  getJsonSchema,
+  INLINE_TYPES,
+  THEME_NAMES,
+  type PlanDocument,
+} from "../src/schema.js";
 import { validatePlan } from "../src/validate.js";
 
 let plan: PlanDocument;
@@ -132,14 +138,22 @@ describe("model contract", () => {
     });
   });
 
-  it("provides the authoring workflow and canonical schema", () => {
+  it("provides the authoring workflow and a compact, valid format example", () => {
     const prompt = getModelPrompt();
     expect(prompt).toContain("heple validate plan.json");
     expect(prompt).toContain("heple plan.json");
     expect(prompt).toContain("heple plan.json --output path/to/plan.html --no-open");
-    expect(prompt).toContain("The plan must match this JSON Schema:");
-    expect(prompt).toContain(JSON.stringify(getJsonSchema(), null, 2));
-    expect(prompt).not.toContain("Plan rules:");
-    expect(prompt).not.toContain("Run heple schema");
+    expect(prompt).toContain(`Reference JSON:\n${JSON.stringify(AUTHORING_EXAMPLE)}`);
+    expect(prompt).not.toContain("additionalProperties");
+    expect(prompt).not.toContain("minLength");
+    expect(prompt.length).toBeLessThan(JSON.stringify(getJsonSchema(), null, 2).length / 2);
+  });
+
+  it("keeps the compact authoring example aligned with every schema primitive", () => {
+    expect(validatePlan(AUTHORING_EXAMPLE)).toMatchObject({ ok: true });
+
+    const serialized = JSON.stringify(AUTHORING_EXAMPLE);
+    for (const type of BLOCK_TYPES) expect(serialized).toContain(`\"type\":\"${type}\"`);
+    for (const type of INLINE_TYPES) expect(serialized).toContain(`\"type\":\"${type}\"`);
   });
 });
