@@ -132,14 +132,14 @@ describe("model contract", () => {
     });
   });
 
-  it("provides a concise authoring and rendering workflow", () => {
+  it("provides the authoring workflow and canonical schema", () => {
     const prompt = getModelPrompt();
-    for (const type of BLOCK_TYPES) expect(prompt).toContain(type);
     expect(prompt).toContain("heple validate plan.json");
     expect(prompt).toContain("heple plan.json");
     expect(prompt).toContain("heple plan.json --output path/to/plan.html --no-open");
-    expect(prompt).toContain("Run heple schema only if you need the exact JSON Schema.");
-    expect(prompt).not.toContain(JSON.stringify(getJsonSchema(), null, 2));
-    expect(prompt.length).toBeLessThan(1_500);
+    expect(prompt).toContain("The plan must match this JSON Schema:");
+    expect(prompt).toContain(JSON.stringify(getJsonSchema(), null, 2));
+    expect(prompt).not.toContain("Plan rules:");
+    expect(prompt).not.toContain("Run heple schema");
   });
 });

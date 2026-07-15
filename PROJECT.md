@@ -50,7 +50,7 @@ heple plan.json --no-navigation         # hide the right-side section navigator
 heple plan.json --no-open               # render without opening a browser
 heple example                            # open the shipped v1 element catalog
 heple schema                            # print the machine-readable JSON Schema
-heple prompt                            # print concise model authoring instructions
+heple prompt                            # print model authoring instructions and schema
 heple validate plan.json                # validate without rendering
 heple themes                            # list the available themes
 ```

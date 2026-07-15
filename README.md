@@ -38,7 +38,7 @@ heple plan.json --no-navigation
 heple example # render and open the element catalog
 heple validate plan.json # validate a plan without rendering it
 heple schema # print the canonical JSON Schema
-heple prompt # print concise plan-authoring instructions for an agent
+heple prompt # print plan-authoring instructions and the canonical schema
 heple themes # choose and save the default theme
 ```
 
