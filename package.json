@@ -1,7 +1,7 @@
 {
   "name": "heple",
-  "version": "0.0.3",
-  "description": "Deterministic HTML plans from structured JSON",
+  "version": "0.0.4",
+  "description": "Make HTML plans with good design. Always.",
   "keywords": [
     "cli",
     "html",
