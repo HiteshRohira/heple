@@ -11,6 +11,7 @@ import {
   type PlanDocument,
 } from "../src/schema.js";
 import { validatePlan } from "../src/validate.js";
+import type { ThemeDefinition } from "../src/themes.js";
 
 let plan: PlanDocument;
 
@@ -72,6 +73,50 @@ describe("renderPlan", () => {
     }
   });
 
+  it("uses theme-specific status palettes with clearly separated badge treatments", () => {
+    const expectedPalettes = {
+      default: ["oklch(0.488 0.243 264.376)", "oklch(0.6 0.118 184.704)"],
+      caffeine: ["#644a40", "#65734f"],
+      clay: ["#6366f1", "#16805a"],
+      supabase: ["#3b82f6", "#10b981"],
+      twitter: ["#1e9df1", "#00b87a"],
+      mono: ["#737373", "#525252"],
+    } satisfies Record<(typeof THEME_NAMES)[number], [string, string]>;
+
+    for (const theme of THEME_NAMES) {
+      const html = renderPlan(plan, { theme });
+      const [info, success] = expectedPalettes[theme];
+
+      expect(html).toContain(`--info: ${info};`);
+      expect(html).toContain(`--success: ${success};`);
+      expect(html).toContain("--info-soft: color-mix(in srgb, var(--info) 18%");
+      expect(html).toContain("--info-border: color-mix(in srgb, var(--info) 58%");
+      expect(html).toContain("--danger-border: color-mix(in srgb, var(--danger) 58%");
+    }
+
+    expect(renderPlan(plan, { theme: "twitter" })).toContain("--sidebar: #f7f8f8;");
+    expect(renderPlan(plan, { theme: "clay" })).toContain("--sidebar-accent: #f3e5f5;");
+    expect(renderPlan(plan, { theme: "mono" })).toContain("--sidebar-border: #ffffff;");
+  });
+
+  it("renders a custom theme definition without adding it to the built-in theme list", async () => {
+    const customTheme = JSON.parse(
+      await readFile("fixtures/custom-theme.json", "utf8"),
+    ) as ThemeDefinition;
+    const html = renderPlan(plan, { theme: customTheme });
+
+    expect(html).toContain("--bg: #f7f8fa");
+    expect(html).toContain("--accent: #86a8c5");
+    expect(THEME_NAMES).toEqual([
+      "default",
+      "caffeine",
+      "clay",
+      "supabase",
+      "twitter",
+      "mono",
+    ]);
+  });
+
   it("renders navigation by default and targets offset section containers", () => {
     const html = renderPlan(plan, { theme: "default" });
 
@@ -81,6 +126,8 @@ describe("renderPlan", () => {
     expect(html).not.toContain('href="#section-1" target="_blank"');
     expect(html).toContain('<section class="section" id="section-1"');
     expect(html).toContain("scroll-margin-top: 28px");
+    expect(html).toContain("padding: 6px 10px");
+    expect(html).toContain("border-radius: var(--radius)");
   });
 
   it("omits navigation when disabled", () => {
@@ -100,7 +147,7 @@ describe("renderPlan", () => {
         },
       ],
     };
-    const html = renderPlan(hostile, { theme: "violet-bloom" });
+    const html = renderPlan(hostile, { theme: "mono" });
 
     expect(html).not.toContain("<script>alert(1)</script>");
     expect(html).not.toContain("<img src=x");

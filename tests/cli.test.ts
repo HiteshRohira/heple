@@ -73,7 +73,7 @@ If you are a human, run heple example.
     const result = await runCli([
       "fixtures/implementation-plan.json",
       "--theme",
-      "sage-garden",
+      "clay",
       "--output",
       output,
       "--no-open",
@@ -81,7 +81,7 @@ If you are a human, run heple example.
 
     expect(result.stdout).toBe(`Created ${output}\n`);
     const html = await readFile(output, "utf8");
-    expect(html).toContain("--bg: #f8f7f4");
+    expect(html).toContain("--bg: #e7e5e4");
     expect(html).toContain('<nav class="toc"');
   });
 
@@ -103,7 +103,24 @@ If you are a human, run heple example.
     const result = await runCli(["themes"]);
     expect(result.stdout).toContain("Themes are inspired by tweakcn.");
     expect(result.stdout).toContain("default");
+    expect(result.stdout).toContain("clay");
     expect(result.stdout).toContain("mono");
+    expect(result.stdout).not.toContain("claude");
+    expect(result.stdout).not.toContain("claymorphism");
+    expect(result.stdout).not.toContain("sage-garden");
+    expect(result.stdout).not.toContain("vercel");
+    expect(result.stdout).not.toContain("violet-bloom");
+  });
+
+  it("rejects removed theme names instead of aliasing or falling back", async () => {
+    await expect(
+      runCli([
+        "fixtures/implementation-plan.json",
+        "--theme",
+        "claymorphism",
+        "--no-open",
+      ]),
+    ).rejects.toMatchObject({ code: 1 });
   });
 
   it("saves and uses the selected default theme", async () => {
@@ -112,11 +129,11 @@ If you are a human, run heple example.
     const output = join(directory, "plan.html");
     const env = { XDG_CONFIG_HOME: configHome };
 
-    const selection = await runCli(["themes", "sage-garden"], env);
-    expect(selection.stdout).toContain("Default theme changed to sage-garden.");
+    const selection = await runCli(["themes", "clay"], env);
+    expect(selection.stdout).toContain("Default theme changed to clay.");
     expect(
       JSON.parse(await readFile(join(configHome, "heple", "config.json"), "utf8")),
-    ).toEqual({ theme: "sage-garden" });
+    ).toEqual({ theme: "clay" });
 
     await runCli([
       "fixtures/implementation-plan.json",
@@ -124,7 +141,7 @@ If you are a human, run heple example.
       output,
       "--no-open",
     ], env);
-    expect(await readFile(output, "utf8")).toContain("--bg: #f8f7f4");
+    expect(await readFile(output, "utf8")).toContain("--bg: #e7e5e4");
   });
 
   it("renders the shipped exhaustive example with navigation enabled", async () => {

@@ -33,7 +33,7 @@ npx heple@latest plan.json
 
 ```text
 heple plan.json # validate, render, and open a plan
-heple plan.json --theme sage-garden --output plan.html --no-open
+heple plan.json --theme clay --output plan.html --no-open
 heple plan.json --no-navigation
 heple example # render and open the element catalog
 heple validate plan.json # validate a plan without rendering it
@@ -41,6 +41,10 @@ heple schema # print the canonical JSON Schema
 heple prompt # print plan-authoring instructions and a compact format example
 heple themes # choose and save the default theme
 ```
+
+Built-in themes are `default`, `caffeine`, `clay`, `supabase`, `twitter`, and `mono`.
+Programmatic rendering also accepts a custom theme definition without registering a new built-in;
+see [fixtures/custom-theme.json](./fixtures/custom-theme.json) for the complete shape.
 
 ## Development
 
@@ -56,7 +60,7 @@ One-off HTML design studies belong in the local `examples/` directory. The entir
 
 ## Roadmap
 
-- [x] Add custom themes
+- [x] Accept custom theme definitions in the renderer
 - [ ] Benchmarks for token savings
 - [ ] Dashboard to configure org-wide theming
 - [ ] Publish to your team or the world

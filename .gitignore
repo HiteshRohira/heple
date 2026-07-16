@@ -3,5 +3,5 @@ dist/
 coverage/
 examples/
 *.html
-!fixtures/*.html
+fixtures/
 .DS_Store
