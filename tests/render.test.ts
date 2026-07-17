@@ -292,6 +292,10 @@ describe("renderPlan", () => {
     expect(untitled).toContain('<h2 class="section-title"');
     expect(untitled).not.toContain("<h3>List item title");
     expect(untitled).toContain('<strong class="step-title">List item title ');
+    expect(untitled).toContain(
+      ".section > .section-title { margin: 0 0 18px;",
+    );
+    expect(untitled).not.toContain("main > .section > .section-title");
     await expectValidSemanticHtml(titled);
     await expectValidSemanticHtml(untitled);
   });

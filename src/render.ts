@@ -188,7 +188,7 @@ a:focus-visible, summary:focus-visible { outline: 3px solid var(--text); outline
 .hero { max-width: none; margin: 0 0 42px; padding: 0 0 32px; border-bottom: 1px solid var(--rule); }
 h1, h2, h3, h4, h5, h6 { line-height: 1.18; letter-spacing: -.025em; text-wrap: balance; }
 .hero h1 { max-width: 18ch; margin: 0; font-size: clamp(2.2rem, 5vw, 3.2rem); letter-spacing: -.035em; }
-main > .section > .section-title { margin: 0 0 18px; font-size: clamp(1.45rem, 3vw, 1.85rem); }
+.section > .section-title { margin: 0 0 18px; font-size: clamp(1.45rem, 3vw, 1.85rem); }
 .section .section > .section-title { margin-top: 0; font-size: 1.12rem; }
 .summary { max-width: 64ch; margin: 16px 0 0; color: var(--secondary-text); font-size: 1.02rem; }
 main { min-width: 0; }
