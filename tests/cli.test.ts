@@ -374,6 +374,22 @@ If you are a human, run heple example.
     });
   });
 
+  it.each([
+    { command: "validate", args: ["validate", "--", "--json"] },
+    { command: "render", args: ["--", "--json"] },
+  ])(
+    "treats --json after the option terminator as positional input for $command",
+    async ({ args }) => {
+      const result = await runFailingCli(args);
+
+      expect(result.code).toBe(1);
+      expect(result.stdout).toBe("");
+      expect(result.stderr).toContain("heple: Could not read input:");
+      expect(result.stderr).toContain("--json");
+      expect(() => JSON.parse(result.stderr)).toThrow();
+    },
+  );
+
   it.each(["schema", "prompt", "themes"] as const)(
     "identifies the %s command in machine-readable argument errors",
     async (command) => {

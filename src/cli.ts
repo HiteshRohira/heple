@@ -342,11 +342,19 @@ function configureFailureHandling(
   }
 }
 
+function requestsJsonProtocol(argv: string[]): boolean {
+  for (const argument of argv.slice(2)) {
+    if (argument === "--") return false;
+    if (argument === "--json") return true;
+  }
+  return false;
+}
+
 export async function run(
   argv = process.argv,
   dependencies?: CliDependencies,
 ): Promise<void> {
-  const json = argv.slice(2).includes("--json");
+  const json = requestsJsonProtocol(argv);
   let command: CliCommand = "render";
   const program = createProgram(dependencies);
   program.hook("preAction", (_thisCommand, actionCommand) => {

@@ -19,6 +19,8 @@ heple plan.json --json --no-open
 - Error envelopes are written to stderr and stdout is empty.
 - Object keys and diagnostic ordering are deterministic for the same heple version,
   command, environment, and input.
+- `--json` activates the protocol only when it appears before the first `--`;
+  tokens after `--` are positional values.
 - `protocolVersion` versions this CLI protocol independently from the plan document's
   `version`.
 
