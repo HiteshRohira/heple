@@ -331,15 +331,29 @@ const interactionScript = `<script>
     return target;
   }
 
+  let clickedFragmentHash = "";
   document.addEventListener("click", (event) => {
     const link = event.target instanceof Element
       ? event.target.closest('a[href^="#"]')
       : null;
-    if (link instanceof HTMLAnchorElement) revealFragment(link.hash);
+    if (!(link instanceof HTMLAnchorElement)) return;
+    if (
+      event.defaultPrevented
+      || (
+        event instanceof MouseEvent
+        && (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
+      )
+    ) return;
+    clickedFragmentHash = link.hash === window.location.hash ? "" : link.hash;
+    revealFragment(link.hash);
   });
   window.addEventListener("hashchange", () => {
+    const clicked = clickedFragmentHash === window.location.hash;
+    clickedFragmentHash = "";
     const target = revealFragment(window.location.hash);
-    if (target) window.requestAnimationFrame(() => target.scrollIntoView());
+    if (target && !clicked) {
+      window.requestAnimationFrame(() => target.scrollIntoView());
+    }
   });
   const initialTarget = revealFragment(window.location.hash);
   if (initialTarget) {

@@ -1,12 +1,14 @@
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { pathToFileURL } from "node:url";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { chromium, type Page } from "playwright-core";
 import { normalizePlan } from "../src/normalize.js";
 import { renderPlan } from "../src/render.js";
 import type { PlanDocument } from "../src/schema.js";
 
-const outputDirectory = "artifacts/renderer-visual";
+const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const outputDirectory = resolve(repositoryRoot, "artifacts/renderer-visual");
 const chromeCandidates = [
   process.env["HEPLE_CHROME_PATH"],
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
@@ -62,7 +64,12 @@ async function assertResponsiveLayout(
 }
 
 const implementationPlan = normalizePlan(
-  JSON.parse(await readFile("fixtures/implementation-plan.json", "utf8")) as PlanDocument,
+  JSON.parse(
+    await readFile(
+      resolve(repositoryRoot, "fixtures/implementation-plan.json"),
+      "utf8",
+    ),
+  ) as PlanDocument,
 );
 const implementationPath = `${outputDirectory}/implementation-plan.html`;
 
@@ -129,11 +136,26 @@ try {
     colorScheme: "light",
     reducedMotion: "reduce",
   });
-  await fragmentPage.goto(`${pathToFileURL(fragmentPath).href}#section-2-1`);
+  const fragmentUrl = pathToFileURL(fragmentPath).href;
+  await fragmentPage.goto(`${fragmentUrl}#section-2-1`);
   assert(
     await fragmentPage.locator("details").evaluate((details) => details.open),
     "direct fragment navigation must reveal a section inside closed details",
   );
+  await fragmentPage.goto(fragmentUrl);
+  await fragmentPage.evaluate(() => {
+    const originalScrollIntoView = Element.prototype.scrollIntoView;
+    Object.defineProperty(window, "__hepleScrollIntoViewCalls", {
+      configurable: true,
+      value: 0,
+      writable: true,
+    });
+    Element.prototype.scrollIntoView = function (...args) {
+      const count = Reflect.get(window, "__hepleScrollIntoViewCalls");
+      Reflect.set(window, "__hepleScrollIntoViewCalls", Number(count) + 1);
+      return originalScrollIntoView.apply(this, args);
+    };
+  });
   await fragmentPage.locator("details").evaluate((details) => {
     details.open = false;
   });
@@ -143,8 +165,37 @@ try {
     await fragmentPage.locator("details").evaluate((details) => details.open),
     "navigation entries must reveal section targets inside closed details",
   );
+  await fragmentPage.waitForFunction(() => window.location.hash === "#section-2-1");
+  assert(
+    await fragmentPage.evaluate(() =>
+      Reflect.get(window, "__hepleScrollIntoViewCalls") === 0
+    ),
+    "click navigation must rely on one native scroll instead of scrolling again",
+  );
+  await fragmentPage.goBack();
+  await fragmentPage.waitForFunction(() => window.location.hash === "");
   await fragmentPage.locator("details").evaluate((details) => {
     details.open = false;
+  });
+  await fragmentPage.evaluate(() => {
+    Reflect.set(window, "__hepleScrollIntoViewCalls", 0);
+  });
+  await fragmentPage.goForward();
+  await fragmentPage.waitForFunction(() => {
+    return window.location.hash === "#section-2-1"
+      && Reflect.get(window, "__hepleScrollIntoViewCalls") === 1;
+  });
+  assert(
+    await fragmentPage.locator("details").evaluate((details) => details.open),
+    "forward navigation must reveal the fragment target inside closed details",
+  );
+  await fragmentPage.goBack();
+  await fragmentPage.waitForFunction(() => window.location.hash === "");
+  await fragmentPage.locator("details").evaluate((details) => {
+    details.open = false;
+  });
+  await fragmentPage.evaluate(() => {
+    Reflect.set(window, "__hepleScrollIntoViewCalls", 0);
   });
   const internalLink = fragmentPage.locator("main p a");
   assert(
@@ -155,6 +206,12 @@ try {
   assert(
     await fragmentPage.locator("details").evaluate((details) => details.open),
     "activating an internal fragment link must reveal its closed details ancestor",
+  );
+  assert(
+    await fragmentPage.evaluate(() =>
+      Reflect.get(window, "__hepleScrollIntoViewCalls") === 0
+    ),
+    "inline fragment clicks must not trigger a second scripted scroll",
   );
   await fragmentPage.screenshot({
     path: `${outputDirectory}/fragment-revealed-1024x768.png`,

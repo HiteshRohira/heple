@@ -248,6 +248,11 @@ describe("renderPlan", () => {
     expect(html).toContain(
       "if (ancestor instanceof HTMLDetailsElement) ancestor.open = true;",
     );
+    expect(html).toContain("let clickedFragmentHash = \"\";");
+    expect(html).toContain(
+      "const clicked = clickedFragmentHash === window.location.hash;",
+    );
+    expect(html).toContain("if (target && !clicked) {");
     expect(html).toContain('window.addEventListener("hashchange"');
     expect(html).toContain("const initialTarget = revealFragment(window.location.hash);");
   });
