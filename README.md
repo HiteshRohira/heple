@@ -53,6 +53,7 @@ pnpm install
 pnpm typecheck
 pnpm test
 pnpm test:visual # uses local Chrome/Chromium; set HEPLE_CHROME_PATH if needed
+pnpm test:visual:update # intentionally refresh committed PNG baselines
 pnpm build
 pnpm dev fixtures/implementation-plan.json --no-open
 ```

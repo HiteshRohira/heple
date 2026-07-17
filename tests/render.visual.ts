@@ -2,13 +2,19 @@ import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import pixelmatch from "pixelmatch";
 import { chromium, type Page } from "playwright-core";
+import { PNG } from "pngjs";
 import { normalizePlan } from "../src/normalize.js";
 import { renderPlan } from "../src/render.js";
 import type { PlanDocument } from "../src/schema.js";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const outputDirectory = resolve(repositoryRoot, "artifacts/renderer-visual");
+const baselineDirectory = resolve(repositoryRoot, "tests/visual-baselines");
+const updateBaselines = process.argv.includes("--update");
+const pixelThreshold = 0.2;
+const maximumDiffRatio = 0.05;
 const chromeCandidates = [
   process.env["HEPLE_CHROME_PATH"],
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
@@ -26,6 +32,76 @@ if (!chromePath) {
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
+}
+
+async function freezeVisualState(page: Page): Promise<void> {
+  await page.addStyleTag({
+    content: `
+      html { scroll-behavior: auto !important; }
+      *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+      }
+    `,
+  });
+  await page.evaluate(() => {
+    window.scrollTo(window.scrollX, window.scrollY);
+    return new Promise<void>((resolveFrame) => {
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => resolveFrame());
+      });
+    });
+  });
+}
+
+async function captureAndCompare(page: Page, name: string): Promise<void> {
+  await freezeVisualState(page);
+  const actualPath = resolve(outputDirectory, `${name}.png`);
+  const baselinePath = resolve(baselineDirectory, `${name}.png`);
+  const actualBuffer = await page.screenshot({
+    path: actualPath,
+    animations: "disabled",
+    caret: "hide",
+  });
+
+  if (updateBaselines) {
+    await mkdir(baselineDirectory, { recursive: true });
+    await writeFile(baselinePath, actualBuffer);
+    console.log(`Updated visual baseline: ${baselinePath}`);
+    return;
+  }
+
+  assert(
+    existsSync(baselinePath),
+    `Missing visual baseline ${baselinePath}; run pnpm test:visual:update`,
+  );
+  const baseline = PNG.sync.read(await readFile(baselinePath));
+  const actual = PNG.sync.read(actualBuffer);
+  assert(
+    baseline.width === actual.width && baseline.height === actual.height,
+    `${name} dimensions changed from ${baseline.width}x${baseline.height} `
+      + `to ${actual.width}x${actual.height}`,
+  );
+
+  const diff = new PNG({ width: actual.width, height: actual.height });
+  const differingPixels = pixelmatch(
+    baseline.data,
+    actual.data,
+    diff.data,
+    actual.width,
+    actual.height,
+    { threshold: pixelThreshold },
+  );
+  const diffRatio = differingPixels / (actual.width * actual.height);
+  if (diffRatio > maximumDiffRatio) {
+    const diffPath = resolve(outputDirectory, `${name}.diff.png`);
+    await writeFile(diffPath, PNG.sync.write(diff));
+    throw new Error(
+      `${name} differs from its baseline by ${(diffRatio * 100).toFixed(2)}% `
+        + `(allowed ${(maximumDiffRatio * 100).toFixed(2)}%); diff: ${diffPath}`,
+    );
+  }
+  console.log(`${name}: ${(diffRatio * 100).toFixed(2)}% pixel difference`);
 }
 
 async function assertResponsiveLayout(
@@ -119,20 +195,22 @@ try {
   for (const viewport of viewports) {
     const page = await browser.newPage({
       viewport: { width: viewport.width, height: viewport.height },
+      deviceScaleFactor: 1,
       colorScheme: "light",
       reducedMotion: "reduce",
     });
     await page.goto(pathToFileURL(implementationPath).href);
     await assertResponsiveLayout(page, viewport.name);
-    await page.screenshot({
-      path: `${outputDirectory}/${viewport.name}-${viewport.width}x${viewport.height}.png`,
-      fullPage: true,
-    });
+    await captureAndCompare(
+      page,
+      `${viewport.name}-${viewport.width}x${viewport.height}`,
+    );
     await page.close();
   }
 
   const fragmentPage = await browser.newPage({
     viewport: { width: 1024, height: 768 },
+    deviceScaleFactor: 1,
     colorScheme: "light",
     reducedMotion: "reduce",
   });
@@ -213,13 +291,14 @@ try {
     ),
     "inline fragment clicks must not trigger a second scripted scroll",
   );
-  await fragmentPage.screenshot({
-    path: `${outputDirectory}/fragment-revealed-1024x768.png`,
-    fullPage: true,
-  });
+  await captureAndCompare(fragmentPage, "fragment-revealed-1024x768");
   await fragmentPage.close();
 } finally {
   await browser.close();
 }
 
-console.log(`Renderer visual checks passed; screenshots: ${outputDirectory}`);
+console.log(
+  updateBaselines
+    ? `Renderer visual baselines updated: ${baselineDirectory}`
+    : `Renderer visual checks passed; actuals: ${outputDirectory}`,
+);
