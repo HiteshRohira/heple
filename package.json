@@ -16,12 +16,23 @@
   "homepage": "https://github.com/HiteshRohira/heple#readme",
   "bugs": "https://github.com/HiteshRohira/heple/issues",
   "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./custom-theme.json": "./custom-theme.json",
+    "./package.json": "./package.json"
+  },
+  "types": "./dist/index.d.ts",
   "bin": {
     "heple": "dist/cli.js"
   },
   "files": [
     "dist/**/*.js",
-    "example.json"
+    "dist/**/*.d.ts",
+    "example.json",
+    "custom-theme.json"
   ],
   "scripts": {
     "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
@@ -29,6 +40,7 @@
     "prepack": "pnpm build",
     "dev": "tsx src/cli.ts",
     "test": "vitest run",
+    "test:package": "node scripts/package-smoke.mjs",
     "test:watch": "vitest",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

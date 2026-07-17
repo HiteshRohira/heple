@@ -101,7 +101,7 @@ describe("renderPlan", () => {
 
   it("renders a custom theme definition without adding it to the built-in theme list", async () => {
     const customTheme = JSON.parse(
-      await readFile("fixtures/custom-theme.json", "utf8"),
+      await readFile("custom-theme.json", "utf8"),
     ) as ThemeDefinition;
     const html = renderPlan(plan, { theme: customTheme });
 
@@ -115,6 +115,47 @@ describe("renderPlan", () => {
       "twitter",
       "mono",
     ]);
+  });
+
+  it("rejects incomplete or unsafe custom theme values", async () => {
+    const customTheme = JSON.parse(
+      await readFile("custom-theme.json", "utf8"),
+    ) as ThemeDefinition;
+
+    expect(() =>
+      renderPlan(plan, {
+        theme: {
+          ...customTheme,
+          light: { ...customTheme.light, accent: "</style><script>alert(1)</script>" },
+        },
+      }),
+    ).toThrow("/light/accent: must be a single safe CSS value");
+
+    const missingBackground = structuredClone(customTheme) as ThemeDefinition & {
+      light: Partial<ThemeDefinition["light"]>;
+    };
+    delete missingBackground.light.background;
+    expect(() =>
+      renderPlan(plan, { theme: missingBackground as ThemeDefinition }),
+    ).toThrow("/light/background: must be a non-empty string");
+
+    expect(() =>
+      renderPlan(plan, {
+        theme: {
+          ...customTheme,
+          dark: { ...customTheme.dark, background: "url(https://example.com/pixel)" },
+        },
+      }),
+    ).toThrow("/dark/background: must not load an external resource");
+
+    expect(() =>
+      renderPlan(plan, {
+        theme: {
+          ...customTheme,
+          dark: { ...customTheme.dark, background: "u\\72l(https://example.com/pixel)" },
+        },
+      }),
+    ).toThrow("/dark/background: must be a single safe CSS value");
   });
 
   it("renders navigation by default and targets offset section containers", () => {
