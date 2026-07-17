@@ -224,11 +224,11 @@ export function themeCss(theme: ThemeName | ThemeDefinition): string {
   --font-sans: ${definition.fontSans};
   --font-mono: ${definition.fontMono};
   --shadow: ${definition.shadow};
-  ${modeCss(definition.light, false)}
+${modeCss(definition.light, false)}
 }
 :root[data-mode="dark"] {
   color-scheme: dark;
-  ${modeCss(definition.dark, true)}
+${modeCss(definition.dark, true)}
 }`;
 }
 
