@@ -188,7 +188,8 @@ describe("model contract", () => {
   it("provides the authoring workflow and a compact, valid format example", () => {
     const prompt = getModelPrompt();
     expect(prompt).toContain("heple validate plan.json");
-    expect(prompt).toContain("heple plan.json");
+    expect(prompt).toContain("Validation is mandatory");
+    expect(prompt).toContain("heple plan.json --output ./plan.html --no-open");
     expect(prompt).toContain(`Reference JSON:\n${JSON.stringify(AUTHORING_EXAMPLE)}`);
     expect(prompt).not.toContain("additionalProperties");
     expect(prompt).not.toContain("minLength");
@@ -196,7 +197,11 @@ describe("model contract", () => {
   });
 
   it("keeps the compact authoring example aligned with every schema primitive", () => {
-    expect(validatePlan(AUTHORING_EXAMPLE)).toMatchObject({ ok: true });
+    const validation = validatePlan(AUTHORING_EXAMPLE);
+    expect(validation).toMatchObject({ ok: true });
+    if (!validation.ok) throw new Error("Authoring example must be valid");
+    expect(renderPlan(normalizePlan(validation.value), { theme: "default" }))
+      .toContain("<!doctype html>");
 
     const serialized = JSON.stringify(AUTHORING_EXAMPLE);
     for (const type of BLOCK_TYPES) expect(serialized).toContain(`\"type\":\"${type}\"`);

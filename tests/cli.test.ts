@@ -67,6 +67,32 @@ If you are a human, run heple example.
     expect(result.stderr).toBe("");
   });
 
+  it("prints agent capabilities derived from the canonical contract", async () => {
+    const capabilities = JSON.parse((await runCli(["capabilities"])).stdout) as {
+      version: string;
+      documentSchema: unknown;
+      commands: Record<string, string>;
+      rendering: { opensBrowserByDefault: boolean };
+      themes: string[];
+    };
+    const schema = JSON.parse((await runCli(["schema"])).stdout) as unknown;
+
+    expect(capabilities.version).toBe(packageVersion);
+    expect(capabilities.documentSchema).toEqual(schema);
+    expect(capabilities.commands.validate).toBe("heple validate plan.json");
+    expect(capabilities.commands.renderNonInteractive)
+      .toBe("heple plan.json --output ./plan.html --no-open");
+    expect(capabilities.rendering.opensBrowserByDefault).toBe(true);
+    expect(capabilities.themes).toEqual([
+      "default",
+      "caffeine",
+      "clay",
+      "supabase",
+      "twitter",
+      "mono",
+    ]);
+  });
+
   it("renders without launching a browser", async () => {
     const directory = await mkdtemp(join(tmpdir(), "heple-test-"));
     const output = join(directory, "plan.html");

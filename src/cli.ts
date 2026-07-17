@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 import { Argument, Command, Option } from "commander";
 import open from "open";
+import { getAgentCapabilities } from "./capabilities.js";
 import { getDefaultTheme, getExampleOutputPath, setDefaultTheme } from "./config.js";
 import { defaultOutputPath, readInput, writeArtifact } from "./io.js";
 import { normalizePlan } from "./normalize.js";
@@ -132,6 +133,13 @@ export function createProgram(
     .description("Print the canonical JSON Schema")
     .action(() => {
       process.stdout.write(`${JSON.stringify(getJsonSchema(), null, 2)}\n`);
+    });
+
+  program
+    .command("capabilities")
+    .description("Print machine-readable agent capabilities")
+    .action(() => {
+      process.stdout.write(`${JSON.stringify(getAgentCapabilities(VERSION), null, 2)}\n`);
     });
 
   program

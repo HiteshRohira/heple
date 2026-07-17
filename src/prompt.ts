@@ -1,3 +1,4 @@
+import { AGENT_COMMANDS } from "./capabilities.js";
 import type { PlanDocument } from "./schema.js";
 
 export const AUTHORING_EXAMPLE = {
@@ -73,8 +74,9 @@ export function getModelPrompt(): string {
 
   Workflow:
   1. Write valid JSON to plan.json. Do not use Markdown fences in the file.
-  2. Optionally check it with: heple validate plan.json
-  3. Generate plan.html and open it with: heple plan.json
+  2. Validate it with: ${AGENT_COMMANDS.validate}
+  3. Validation is mandatory. Fix every diagnostic and rerun step 2 until it succeeds.
+  4. Render without browser interaction: ${AGENT_COMMANDS.renderNonInteractive}
 
   Use only the JSON shapes demonstrated below. Root blocks, sections, and details can contain any block shape. Omit/add fields and items as needed.
   Choices: list style unordered|ordered; callout tone info|warning|success; status planned|active|done|blocked; severity low|medium|high|critical; column align left|center|right.

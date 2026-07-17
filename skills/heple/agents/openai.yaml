@@ -1,0 +1,4 @@
+interface:
+  display_name: "Heple Plans"
+  short_description: "Create validated visual plans with Heple"
+  default_prompt: "Use $heple to create and validate a visual implementation plan."
