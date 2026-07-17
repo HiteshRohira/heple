@@ -1,9 +1,31 @@
-import { Type, type Static, type TSchema } from "@sinclair/typebox";
+import { Kind, Type, type Static, type TSchema } from "@sinclair/typebox";
 
 const exactObject = <T extends Record<string, TSchema>>(properties: T) =>
   Type.Object(properties, { additionalProperties: false });
 
 const nonEmptyString = Type.String({ minLength: 1 });
+
+type DiscriminatedUnionStatic<T extends TSchema[], P extends unknown[]> = {
+  [K in keyof T]: T[K] extends TSchema ? Static<T[K], P> : never;
+}[number];
+
+interface TDiscriminatedUnion<T extends TSchema[]> extends TSchema {
+  [Kind]: "Union";
+  static: DiscriminatedUnionStatic<T, this["params"]>;
+  oneOf: T;
+  discriminator: { propertyName: "type" };
+}
+
+function discriminatedUnion<T extends TSchema[]>(
+  variants: [...T],
+): TDiscriminatedUnion<T> {
+  const { anyOf, ...union } = Type.Union(variants);
+  return {
+    ...union,
+    oneOf: anyOf,
+    discriminator: { propertyName: "type" },
+  } as unknown as TDiscriminatedUnion<T>;
+}
 
 export const INLINE_TYPES = [
   "text",
@@ -36,7 +58,7 @@ export const THEME_NAMES = [
 ] as const;
 export type ThemeName = (typeof THEME_NAMES)[number];
 
-export const InlineSchema = Type.Union([
+export const InlineSchema = discriminatedUnion([
   exactObject({ type: Type.Literal("text"), text: nonEmptyString }),
   exactObject({
     type: Type.Literal("link"),
@@ -73,7 +95,7 @@ const FactSchema = exactObject({ label: nonEmptyString, value: nonEmptyString })
 
 export const BlockSchema = Type.Recursive(
   (Block) =>
-    Type.Union([
+    discriminatedUnion([
       exactObject({
         type: Type.Literal("section"),
         title: nonEmptyString,

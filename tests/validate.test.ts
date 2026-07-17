@@ -56,6 +56,104 @@ describe("validatePlan", () => {
     }
   });
 
+  it("reports one actionable issue for each unknown block or inline type", () => {
+    expect(validatePlan({
+      version: "1",
+      blocks: [{ type: "chart", data: [] }],
+    })).toEqual({
+      ok: false,
+      issues: [{
+        path: "/blocks/0/type",
+        message: "unknown block type \"chart\"; expected one of: section, paragraph, list, callout, steps, table, code, details",
+      }],
+    });
+
+    expect(validatePlan({
+      version: "1",
+      blocks: [{
+        type: "paragraph",
+        content: [{ type: "mention", user: "Ada" }],
+      }],
+    })).toEqual({
+      ok: false,
+      issues: [{
+        path: "/blocks/0/content/0/type",
+        message: "unknown inline type \"mention\"; expected one of: text, link, strong, emphasis, code, status, severity",
+      }],
+    });
+  });
+
+  it("reports only relevant missing and invalid fields for known variants", () => {
+    expect(validatePlan({
+      version: "1",
+      blocks: [
+        { type: "paragraph" },
+        {
+          type: "paragraph",
+          content: [{ type: "link", text: "Docs" }],
+        },
+        {
+          type: "paragraph",
+          content: [{ type: "status", value: "waiting" }],
+        },
+      ],
+    })).toEqual({
+      ok: false,
+      issues: [
+        { path: "/blocks/0/content", message: "is required" },
+        { path: "/blocks/1/content/0/href", message: "is required" },
+        {
+          path: "/blocks/2/content/0/value",
+          message: "must be one of: planned, active, done, blocked",
+        },
+      ],
+    });
+  });
+
+  it("keeps focused diagnostics for nested blocks", () => {
+    expect(validatePlan({
+      version: "1",
+      blocks: [{
+        type: "section",
+        title: "Outer",
+        blocks: [{
+          type: "details",
+          summary: "Inner",
+          blocks: [{ type: "diagram" }],
+        }],
+      }],
+    })).toEqual({
+      ok: false,
+      issues: [{
+        path: "/blocks/0/blocks/0/blocks/0/type",
+        message: "unknown block type \"diagram\"; expected one of: section, paragraph, list, callout, steps, table, code, details",
+      }],
+    });
+  });
+
+  it("reports additional properties only on the selected variants", () => {
+    expect(validatePlan({
+      version: "1",
+      blocks: [{
+        type: "paragraph",
+        content: [{ type: "text", text: "Hello", markdown: true }],
+        rawHtml: "<strong>Hello</strong>",
+      }],
+    })).toEqual({
+      ok: false,
+      issues: [
+        {
+          path: "/blocks/0/rawHtml",
+          message: "must NOT have additional properties",
+        },
+        {
+          path: "/blocks/0/content/0/markdown",
+          message: "must NOT have additional properties",
+        },
+      ],
+    });
+  });
+
   it("rejects the removed facts regions and note callout tone", () => {
     expect(validatePlan({ version: "1", facts: [{ label: "A", value: "B" }] }).ok).toBe(false);
     expect(validatePlan({
