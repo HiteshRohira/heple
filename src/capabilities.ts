@@ -1,5 +1,8 @@
 import { getJsonSchema, THEME_NAMES } from "./schema.js";
 
+// Increment for breaking changes to the capabilities object; additive fields remain compatible.
+export const CAPABILITIES_VERSION = "1";
+
 export const AGENT_COMMANDS = {
   instructions: "heple prompt",
   schema: "heple schema",
@@ -9,7 +12,7 @@ export const AGENT_COMMANDS = {
 
 export function getAgentCapabilities(version: string) {
   return {
-    capabilitiesVersion: "1",
+    capabilitiesVersion: CAPABILITIES_VERSION,
     name: "heple",
     version,
     documentSchema: getJsonSchema(),

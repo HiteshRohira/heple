@@ -69,6 +69,7 @@ If you are a human, run heple example.
 
   it("prints agent capabilities derived from the canonical contract", async () => {
     const capabilities = JSON.parse((await runCli(["capabilities"])).stdout) as {
+      capabilitiesVersion: string;
       version: string;
       documentSchema: unknown;
       commands: Record<string, string>;
@@ -77,6 +78,16 @@ If you are a human, run heple example.
     };
     const schema = JSON.parse((await runCli(["schema"])).stdout) as unknown;
 
+    expect(capabilities.capabilitiesVersion).toBe("1");
+    expect(Object.keys(capabilities)).toEqual([
+      "capabilitiesVersion",
+      "name",
+      "version",
+      "documentSchema",
+      "commands",
+      "rendering",
+      "themes",
+    ]);
     expect(capabilities.version).toBe(packageVersion);
     expect(capabilities.documentSchema).toEqual(schema);
     expect(capabilities.commands.validate).toBe("heple validate plan.json");

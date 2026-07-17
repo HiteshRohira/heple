@@ -25,7 +25,10 @@ describe("Heple agent integration kit", () => {
       const markdown = await readFile(path, "utf8");
       for (const match of markdown.matchAll(/```json\n([\s\S]*?)\n```/g)) {
         exampleCount += 1;
-        const input = JSON.parse(match[1] ?? "");
+        const source = match[1]?.trim();
+        expect(source, `${path} contains an empty JSON example`).toBeTruthy();
+        if (!source) continue;
+        const input = JSON.parse(source);
         const result = validatePlan(input);
 
         expect(result, `${path} contains an invalid example`).toMatchObject({ ok: true });
