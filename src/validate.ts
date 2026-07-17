@@ -64,34 +64,68 @@ function schemaIssues(
   errors: ErrorObject[],
   discriminatedKinds: ReadonlyMap<string, DiscriminatedKind>,
 ): ValidationIssue[] {
+  interface LiteralUnionGroup {
+    firstIndex: number;
+    hasAnyOfError: boolean;
+    allowedValuesByBranch: Map<number, unknown>;
+  }
+
+  function literalUnionLocation(
+    error: ErrorObject,
+  ): { key: string; branch?: number } | undefined {
+    if (error.keyword === "anyOf") {
+      return { key: `${error.instancePath}\0${error.schemaPath}` };
+    }
+    if (error.keyword !== "const") return undefined;
+
+    const match = /^(.*\/anyOf)\/(\d+)\/const$/.exec(error.schemaPath);
+    if (!match) return undefined;
+    return {
+      key: `${error.instancePath}\0${match[1]}`,
+      branch: Number(match[2]),
+    };
+  }
+
+  const literalUnionGroups = new Map<string, LiteralUnionGroup>();
+  errors.forEach((error, index) => {
+    const location = literalUnionLocation(error);
+    if (!location) return;
+
+    const group = literalUnionGroups.get(location.key) ?? {
+      firstIndex: index,
+      hasAnyOfError: false,
+      allowedValuesByBranch: new Map<number, unknown>(),
+    };
+    if (location.branch === undefined) {
+      group.hasAnyOfError = true;
+    } else {
+      group.allowedValuesByBranch.set(location.branch, error.params.allowedValue);
+    }
+    literalUnionGroups.set(location.key, group);
+  });
+
+  const coalescedGroups = new Map(
+    [...literalUnionGroups].filter(([, group]) =>
+      group.hasAnyOfError && group.allowedValuesByBranch.size > 1
+    ),
+  );
+
   const issues: ValidationIssue[] = [];
   for (let index = 0; index < errors.length; index += 1) {
     const error = errors[index]!;
-    if (error.keyword === "const") {
-      const allowedValues: unknown[] = [];
-      let end = index;
-      while (end < errors.length) {
-        const candidate = errors[end]!;
-        if (
-          candidate.keyword !== "const"
-          || candidate.instancePath !== error.instancePath
-        ) break;
-        allowedValues.push(candidate.params.allowedValue);
-        end += 1;
-      }
-      const unionError = errors[end];
-      if (
-        allowedValues.length > 1
-        && unionError?.keyword === "anyOf"
-        && unionError.instancePath === error.instancePath
-      ) {
+    const location = literalUnionLocation(error);
+    const group = location ? coalescedGroups.get(location.key) : undefined;
+    if (group) {
+      if (index === group.firstIndex) {
+        const allowedValues = [...group.allowedValuesByBranch]
+          .sort(([left], [right]) => left - right)
+          .map(([, value]) => value);
         issues.push({
           path: error.instancePath || "/",
           message: `must be one of: ${allowedValues.map(String).join(", ")}`,
         });
-        index = end;
-        continue;
       }
+      continue;
     }
     issues.push(schemaIssue(error, discriminatedKinds));
   }

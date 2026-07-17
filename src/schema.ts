@@ -19,7 +19,21 @@ interface TDiscriminatedUnion<T extends TSchema[]> extends TSchema {
 function discriminatedUnion<T extends TSchema[]>(
   variants: [...T],
 ): TDiscriminatedUnion<T> {
-  const { anyOf, ...union } = Type.Union(variants);
+  const generatedUnion: unknown = Type.Union(variants);
+  const generatedAnyOf = generatedUnion !== null && typeof generatedUnion === "object"
+    ? Reflect.get(generatedUnion, "anyOf")
+    : undefined;
+  if (
+    !Array.isArray(generatedAnyOf)
+    || generatedAnyOf.length === 0
+    || generatedAnyOf.length !== variants.length
+  ) {
+    throw new Error("TypeBox union must expose every variant through a non-empty anyOf array");
+  }
+
+  const { anyOf, ...union } = generatedUnion as Record<string, unknown> & {
+    anyOf: unknown[];
+  };
   return {
     ...union,
     oneOf: anyOf,
