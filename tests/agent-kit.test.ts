@@ -28,8 +28,7 @@ describe("Heple agent integration kit", () => {
       for (const match of markdown.matchAll(/```json\r?\n([\s\S]*?)\r?\n```/g)) {
         exampleCount += 1;
         const source = match[1]?.trim();
-        expect(source, `${path} contains an empty JSON example`).toBeTruthy();
-        if (!source) continue;
+        if (!source) throw new Error(`${path} contains an empty JSON example`);
         const input = JSON.parse(source);
         const result = validatePlan(input);
 
