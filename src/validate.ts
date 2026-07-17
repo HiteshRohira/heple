@@ -23,7 +23,7 @@ function schemaIssue(error: ErrorObject): ValidationIssue {
   const base = error.instancePath;
   const path = error.keyword === "additionalProperties"
     ? `${base}/${String(error.params.additionalProperty)}`
-    : base || "/";
+    : base;
   return {
     code: "PLAN_SCHEMA_VIOLATION",
     path,
@@ -120,5 +120,5 @@ export function validatePlan(input: unknown): ValidationResult {
 }
 
 export function formatValidationIssues(issues: ValidationIssue[]): string {
-  return issues.map((issue) => `${issue.path}: ${issue.message}`).join("\n");
+  return issues.map((issue) => `${issue.path || "/"}: ${issue.message}`).join("\n");
 }

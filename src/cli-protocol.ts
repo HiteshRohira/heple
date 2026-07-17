@@ -8,7 +8,13 @@ export const EXIT_CODES = {
   invalidInput: 2,
 } as const;
 
-export type CliCommand = "render" | "validate";
+export type CliCommand =
+  | "render"
+  | "example"
+  | "validate"
+  | "schema"
+  | "prompt"
+  | "themes";
 export type CliErrorClass = "invalid_input" | "operational";
 export type CliErrorCode =
   | "INVALID_ARGUMENT"
@@ -36,26 +42,34 @@ interface ErrorEnvelope {
     code: CliErrorCode;
     class: CliErrorClass;
     message: string;
+    details?: Readonly<Record<string, unknown>>;
     diagnostics?: ValidationIssue[];
   };
+}
+
+interface CliFailureOptions {
+  details?: Readonly<Record<string, unknown>>;
+  diagnostics?: ValidationIssue[];
 }
 
 export class CliFailure extends Error {
   readonly code: CliErrorCode;
   readonly errorClass: CliErrorClass;
+  readonly details?: Readonly<Record<string, unknown>>;
   readonly diagnostics?: ValidationIssue[];
 
   constructor(
     code: CliErrorCode,
     errorClass: CliErrorClass,
     message: string,
-    diagnostics?: ValidationIssue[],
+    options: CliFailureOptions = {},
   ) {
     super(message);
     this.name = "CliFailure";
     this.code = code;
     this.errorClass = errorClass;
-    if (diagnostics) this.diagnostics = diagnostics;
+    if (options.details) this.details = options.details;
+    if (options.diagnostics) this.diagnostics = options.diagnostics;
   }
 
   get exitCode(): number {
@@ -86,6 +100,7 @@ export function errorEnvelope(command: CliCommand, failure: CliFailure): ErrorEn
       code: failure.code,
       class: failure.errorClass,
       message: failure.message,
+      ...(failure.details ? { details: failure.details } : {}),
       ...(failure.diagnostics ? { diagnostics: failure.diagnostics } : {}),
     },
   };

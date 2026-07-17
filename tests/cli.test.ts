@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { promisify } from "node:util";
 import { describe, expect, it, vi } from "vitest";
-import { createProgram } from "../src/cli.js";
+import { createProgram, run } from "../src/cli.js";
 
 const execFileAsync = promisify(execFile);
 const cli = resolve("src/cli.ts");
@@ -199,6 +199,63 @@ If you are a human, run heple example.
     );
   });
 
+  it("includes the written artifact path when browser opening fails", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "heple-test-"));
+    const output = join(directory, "plan.html");
+    const stdout: string[] = [];
+    const stderr: string[] = [];
+    const previousExitCode = process.exitCode;
+    const writeStdout = vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
+      stdout.push(String(chunk));
+      return true;
+    });
+    const writeStderr = vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      stderr.push(String(chunk));
+      return true;
+    });
+    let exitCode: typeof process.exitCode;
+
+    try {
+      process.exitCode = undefined;
+      await run([
+        "node",
+        "heple",
+        "fixtures/implementation-plan.json",
+        "--theme",
+        "default",
+        "--output",
+        output,
+        "--json",
+      ], {
+        openPath: async () => {
+          throw new Error("browser unavailable");
+        },
+      });
+      exitCode = process.exitCode;
+    } finally {
+      process.exitCode = previousExitCode;
+      writeStdout.mockRestore();
+      writeStderr.mockRestore();
+    }
+
+    expect(exitCode).toBe(1);
+    expect(stdout).toEqual([]);
+    expect(stderr.join("")).toBe(
+      `${JSON.stringify({
+        protocolVersion: "1",
+        ok: false,
+        command: "render",
+        error: {
+          code: "BROWSER_OPEN_FAILED",
+          class: "operational",
+          message: "Could not open artifact: browser unavailable",
+          details: { outputPath: output },
+        },
+      })}\n`,
+    );
+    expect(await readFile(output, "utf8")).toContain("<!doctype html>");
+  });
+
   it("reports invalid JSON as invalid input on stderr only", async () => {
     const directory = await mkdtemp(join(tmpdir(), "heple-test-"));
     const input = join(directory, "invalid.json");
@@ -218,7 +275,7 @@ If you are a human, run heple example.
         class: "invalid_input",
         diagnostics: [{
           code: "JSON_SYNTAX_ERROR",
-          path: "/",
+          path: "",
         }],
       },
     });
@@ -301,6 +358,43 @@ If you are a human, run heple example.
     );
   });
 
+  it("does not infer a command name from an option value", async () => {
+    const result = await runFailingCli(["--output", "validate", "--json"]);
+
+    expect(result.code).toBe(2);
+    expect(result.stdout).toBe("");
+    expect(JSON.parse(result.stderr)).toMatchObject({
+      protocolVersion: "1",
+      ok: false,
+      command: "render",
+      error: {
+        code: "INVALID_ARGUMENT",
+        class: "invalid_input",
+      },
+    });
+  });
+
+  it.each(["schema", "prompt", "themes"] as const)(
+    "identifies the %s command in machine-readable argument errors",
+    async (command) => {
+      for (const args of [[command, "--json"], ["--json", command]]) {
+        const result = await runFailingCli(args);
+
+        expect(result.code).toBe(2);
+        expect(result.stdout).toBe("");
+        expect(JSON.parse(result.stderr)).toMatchObject({
+          protocolVersion: "1",
+          ok: false,
+          command,
+          error: {
+            code: "INVALID_ARGUMENT",
+            class: "invalid_input",
+          },
+        });
+      }
+    },
+  );
+
   it("opts out of the right-side navigator", async () => {
     const directory = await mkdtemp(join(tmpdir(), "heple-test-"));
     const output = join(directory, "plan.html");
@@ -374,6 +468,25 @@ If you are a human, run heple example.
     expect(html).toContain("The heple element catalog");
     expect(html).toContain('<nav class="toc"');
     expect(html).toContain('class="mode-toggle"');
+  });
+
+  it("identifies the example command in its machine-readable result", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "heple-test-"));
+    const result = await runCli(["example", "--no-open", "--json"], {
+      XDG_CACHE_HOME: join(directory, "cache"),
+      XDG_CONFIG_HOME: join(directory, "config"),
+    });
+
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      protocolVersion: "1",
+      ok: true,
+      command: "example",
+      data: {
+        opened: false,
+        navigation: true,
+      },
+    });
+    expect(result.stderr).toBe("");
   });
 
   it("overwrites one cached example without writing to the current directory", async () => {

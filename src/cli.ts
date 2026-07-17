@@ -7,6 +7,7 @@ import { Argument, Command, CommanderError, Option } from "commander";
 import open from "open";
 import {
   CliFailure,
+  type CliCommand,
   errorEnvelope,
   serializeEnvelope,
   successEnvelope,
@@ -72,7 +73,9 @@ async function loadInput(inputPath: string): Promise<unknown> {
         "INVALID_JSON",
         "invalid_input",
         error.message,
-        [{ code: "JSON_SYNTAX_ERROR", path: "/", message: error.detail }],
+        {
+          diagnostics: [{ code: "JSON_SYNTAX_ERROR", path: "", message: error.detail }],
+        },
       );
     }
     throw new CliFailure(
@@ -90,7 +93,7 @@ function assertValid(input: unknown) {
       "INVALID_PLAN",
       "invalid_input",
       `Plan validation failed:\n${formatValidationIssues(result.issues)}`,
-      result.issues,
+      { diagnostics: result.issues },
     );
   }
   return result.value;
@@ -151,15 +154,20 @@ async function renderCommand(
         "BROWSER_OPEN_FAILED",
         "operational",
         `Could not open artifact: ${errorDetail(error)}`,
+        { details: { outputPath } },
       );
     }
   }
   return { outputPath, opened, theme, navigation };
 }
 
-function writeRenderResult(result: RenderResult, json: boolean): void {
+function writeRenderResult(
+  result: RenderResult,
+  json: boolean,
+  command: Extract<CliCommand, "render" | "example"> = "render",
+): void {
   if (json) {
-    process.stdout.write(serializeEnvelope(successEnvelope("render", result)));
+    process.stdout.write(serializeEnvelope(successEnvelope(command, result)));
     return;
   }
   if (result.opened) {
@@ -173,6 +181,17 @@ export function createProgram(
   const program = new Command();
   const usesJsonProtocol = (options: { json?: boolean }): boolean =>
     options.json === true || program.opts<{ json?: boolean }>().json === true;
+  const rejectUnsupportedJson = (
+    command: Extract<CliCommand, "schema" | "prompt" | "themes">,
+  ): void => {
+    if (program.opts<{ json?: boolean }>().json) {
+      throw new CliFailure(
+        "INVALID_ARGUMENT",
+        "invalid_input",
+        `option '--json' is not supported by command '${command}'`,
+      );
+    }
+  };
   program
     .name("heple")
     .description("Turn structured JSON plans into deterministic HTML")
@@ -228,6 +247,7 @@ export function createProgram(
           json,
         ),
         json,
+        "example",
       );
     });
 
@@ -249,6 +269,7 @@ export function createProgram(
     .command("schema")
     .description("Print the canonical JSON Schema")
     .action(() => {
+      rejectUnsupportedJson("schema");
       process.stdout.write(`${JSON.stringify(getJsonSchema(), null, 2)}\n`);
     });
 
@@ -256,6 +277,7 @@ export function createProgram(
     .command("prompt")
     .description("Print plan-authoring instructions and a compact format example")
     .action(() => {
+      rejectUnsupportedJson("prompt");
       process.stdout.write(`${getModelPrompt()}\n`);
     });
 
@@ -267,6 +289,7 @@ export function createProgram(
         .choices([...THEME_NAMES]),
     )
     .action(async (theme: ThemeName | undefined) => {
+      rejectUnsupportedJson("themes");
       const currentTheme = await getDefaultTheme();
       if (theme) {
         await setDefaultTheme(theme);
@@ -296,13 +319,42 @@ export function createProgram(
   return program;
 }
 
-export async function run(argv = process.argv): Promise<void> {
-  const json = argv.slice(2).includes("--json");
-  const command = argv.slice(2).includes("validate") ? "validate" : "render";
-  const program = createProgram().exitOverride();
+function commandIdentifier(command: Command): CliCommand {
+  const name = command.name();
+  return name === "heple" ? "render" : name as CliCommand;
+}
+
+function configureFailureHandling(
+  command: Command,
+  json: boolean,
+  setCommand: (command: CliCommand) => void,
+): void {
+  const identifier = commandIdentifier(command);
+  command.exitOverride((error) => {
+    setCommand(identifier);
+    throw error;
+  });
   if (json) {
-    program.configureOutput({ writeErr: () => undefined });
+    command.configureOutput({ writeErr: () => undefined });
   }
+  for (const subcommand of command.commands) {
+    configureFailureHandling(subcommand, json, setCommand);
+  }
+}
+
+export async function run(
+  argv = process.argv,
+  dependencies?: CliDependencies,
+): Promise<void> {
+  const json = argv.slice(2).includes("--json");
+  let command: CliCommand = "render";
+  const program = createProgram(dependencies);
+  program.hook("preAction", (_thisCommand, actionCommand) => {
+    command = commandIdentifier(actionCommand);
+  });
+  configureFailureHandling(program, json, (selectedCommand) => {
+    command = selectedCommand;
+  });
 
   try {
     await program.parseAsync(argv);

@@ -49,7 +49,20 @@ artifact to the default browser. `theme` is the selected built-in theme and
 `error.code` and diagnostic `code` values are stable identifiers. `message` is for
 display and may contain environment-specific details for operational failures.
 Diagnostic paths are JSON Pointers. The `diagnostics` field is present when a failure
-can be tied to input locations.
+can be tied to input locations. In accordance with JSON Pointer, the empty string
+identifies the document root; `/` identifies an object property whose name is empty.
+
+When an artifact was successfully written but browser opening failed, the envelope
+includes the absolute path so the caller can still use the result:
+
+```json
+{"protocolVersion":"1","ok":false,"command":"render","error":{"code":"BROWSER_OPEN_FAILED","class":"operational","message":"Could not open artifact: browser unavailable","details":{"outputPath":"/absolute/path/plan.html"}}}
+```
+
+`command` identifies the invoked CLI command. Its v1 values are `render` for the
+default plan-rendering command, plus `example`, `validate`, `schema`, `prompt`, and
+`themes`. This remains accurate for argument errors, including when `--json` is not
+supported by the selected subcommand.
 
 ## Exit codes
 
@@ -70,7 +83,7 @@ can be tied to input locations.
 | `CONFIG_READ_FAILED` | `operational` | The renderer theme configuration could not be read. |
 | `RENDER_FAILED` | `operational` | A validated plan could not be rendered. |
 | `OUTPUT_WRITE_FAILED` | `operational` | The HTML artifact could not be written. |
-| `BROWSER_OPEN_FAILED` | `operational` | The artifact was written but could not be opened. |
+| `BROWSER_OPEN_FAILED` | `operational` | The artifact was written but could not be opened; `error.details.outputPath` contains its absolute path. |
 | `INTERNAL_ERROR` | `operational` | An otherwise unclassified runtime failure occurred. |
 
 ## Diagnostic codes

@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import { BLOCK_TYPES, INLINE_TYPES } from "../src/schema.js";
-import { validatePlan } from "../src/validate.js";
+import { formatValidationIssues, validatePlan } from "../src/validate.js";
 
 async function fixture(): Promise<unknown> {
   return JSON.parse(await readFile("fixtures/implementation-plan.json", "utf8"));
@@ -21,6 +21,22 @@ describe("validatePlan", () => {
 
   it("accepts the complete implementation-plan fixture", async () => {
     expect(validatePlan(await fixture())).toMatchObject({ ok: true });
+  });
+
+  it("uses the empty JSON Pointer for document-root diagnostics", () => {
+    const result = validatePlan(null);
+
+    expect(result).toEqual({
+      ok: false,
+      issues: [{
+        code: "PLAN_SCHEMA_VIOLATION",
+        path: "",
+        message: "must be object",
+      }],
+    });
+    if (!result.ok) {
+      expect(formatValidationIssues(result.issues)).toBe("/: must be object");
+    }
   });
 
   it("ships a valid example covering every block and inline primitive", async () => {
