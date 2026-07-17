@@ -189,6 +189,9 @@ describe("model contract", () => {
     const prompt = getModelPrompt();
     expect(prompt).toContain("heple validate plan.json");
     expect(prompt).toContain("heple plan.json");
+    expect(prompt).toContain("8 overall block nesting levels including both sections and details");
+    expect(prompt).toContain("sections may be nested at most 5 levels for headings");
+    expect(prompt).toContain("details do not increase section-heading depth");
     expect(prompt).toContain(`Reference JSON:\n${JSON.stringify(AUTHORING_EXAMPLE)}`);
     expect(prompt).not.toContain("additionalProperties");
     expect(prompt).not.toContain("minLength");

@@ -64,6 +64,39 @@ function tablePlan(columns: number, rows: number): PlanDocument {
   };
 }
 
+function planAtTraversalBudget(totalItems: number): PlanDocument {
+  const columns = 10;
+  const rows = 50;
+  const cellCount = columns * rows;
+  const fixedItems = 1 + columns + rows + cellCount;
+  let inlineItemsRemaining = totalItems - fixedItems;
+  let cellsRemaining = cellCount;
+
+  const plan = tablePlan(columns, rows);
+  const table = plan.blocks?.[0];
+  if (table?.type !== "table") throw new Error("Unexpected traversal fixture");
+
+  for (const row of table.rows) {
+    for (let index = 0; index < row.cells.length; index += 1) {
+      const inlineItems = Math.min(
+        V1_COMPLEXITY_BUDGETS.collectionItems,
+        inlineItemsRemaining - (cellsRemaining - 1),
+      );
+      row.cells[index] = Array.from(
+        { length: inlineItems },
+        () => ({ type: "text", text: "x" }),
+      );
+      inlineItemsRemaining -= inlineItems;
+      cellsRemaining -= 1;
+    }
+  }
+
+  if (inlineItemsRemaining !== 0) {
+    throw new Error("Traversal-budget fixture could not be filled");
+  }
+  return plan;
+}
+
 function totalStringCharacters(value: unknown): number {
   if (typeof value === "string") return [...value].length;
   if (Array.isArray(value)) {
@@ -121,6 +154,12 @@ describe("validatePlan", () => {
         blocks: { maxItems: V1_COMPLEXITY_BUDGETS.collectionItems },
       },
     });
+  });
+
+  it("keeps the shared v1 budgets immutable at runtime", () => {
+    expect(Object.isFrozen(V1_COMPLEXITY_BUDGETS)).toBe(true);
+    expect(Reflect.set(V1_COMPLEXITY_BUDGETS, "collectionItems", 1)).toBe(false);
+    expect(V1_COMPLEXITY_BUDGETS.collectionItems).toBe(100);
   });
 
   it("accepts a document with no visible regions", () => {
@@ -302,6 +341,22 @@ describe("validatePlan", () => {
       issues: [{
         path: "/blocks/0/content",
         message: "must contain at most 100 items (v1 limit)",
+      }],
+    });
+  });
+
+  it("bounds cumulative traversal across nested collections", () => {
+    expect(validatePlan(
+      planAtTraversalBudget(V1_COMPLEXITY_BUDGETS.traversalItems),
+    )).toMatchObject({ ok: true });
+
+    expect(validatePlan(
+      planAtTraversalBudget(V1_COMPLEXITY_BUDGETS.traversalItems + 1),
+    )).toEqual({
+      ok: false,
+      issues: [{
+        path: "/",
+        message: "plan may contain at most 50000 traversable collection items in total (v1 limit)",
       }],
     });
   });

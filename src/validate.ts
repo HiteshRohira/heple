@@ -70,9 +70,11 @@ function inspectComplexity(input: unknown): ValidationIssue[] {
   const issueKeys = new Set<string>();
   const stack: InspectionEntry[] = [{ value: input, path: "/", kind: "root" }];
   let totalBlocks = 0;
+  let traversalItems = 0;
   let totalStringCharacters = 0;
   let totalBlocksReported = false;
   let totalStringsReported = false;
+  let traversalLimitExceeded = false;
 
   const addIssue = (issue: ValidationIssue) => {
     const key = `${issue.path}\0${issue.message}`;
@@ -104,6 +106,7 @@ function inspectComplexity(input: unknown): ValidationIssue[] {
     path: string,
     maxItems: number,
   ): value is unknown[] => {
+    if (traversalLimitExceeded) return false;
     if (!Array.isArray(value)) return false;
     if (value.length > maxItems) {
       addIssue({
@@ -111,6 +114,20 @@ function inspectComplexity(input: unknown): ValidationIssue[] {
         message: `must contain at most ${maxItems} items (v1 limit)`,
       });
     }
+    const inspectedLength = Math.min(value.length, maxItems);
+    if (
+      traversalItems + inspectedLength
+      > V1_COMPLEXITY_BUDGETS.traversalItems
+    ) {
+      traversalLimitExceeded = true;
+      stack.length = 0;
+      addIssue({
+        path: "/",
+        message: `plan may contain at most ${V1_COMPLEXITY_BUDGETS.traversalItems} traversable collection items in total (v1 limit)`,
+      });
+      return false;
+    }
+    traversalItems += inspectedLength;
     return true;
   };
 
@@ -133,7 +150,7 @@ function inspectComplexity(input: unknown): ValidationIssue[] {
     }
   };
 
-  while (stack.length > 0) {
+  while (stack.length > 0 && !traversalLimitExceeded) {
     const entry = stack.pop();
     if (!entry) break;
 

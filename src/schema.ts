@@ -3,10 +3,11 @@ import { Type, type Static, type TSchema } from "@sinclair/typebox";
 const exactObject = <T extends Record<string, TSchema>>(properties: T) =>
   Type.Object(properties, { additionalProperties: false });
 
-export const V1_COMPLEXITY_BUDGETS = {
+export const V1_COMPLEXITY_BUDGETS = Object.freeze({
   totalBlocks: 500,
   blockNestingDepth: 8,
   collectionItems: 100,
+  traversalItems: 50_000,
   tableColumns: 20,
   tableRows: 200,
   tableCells: 2_000,
@@ -14,7 +15,7 @@ export const V1_COMPLEXITY_BUDGETS = {
   totalStringCharacters: 1_000_000,
   codeCharacters: 100_000,
   codeLines: 5_000,
-} as const;
+} as const);
 
 const nonEmptyString = Type.String({
   minLength: 1,
