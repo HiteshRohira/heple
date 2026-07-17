@@ -46,6 +46,25 @@ Built-in themes are `default`, `caffeine`, `clay`, `supabase`, `twitter`, and `m
 Programmatic rendering also accepts a custom theme definition without registering a new built-in;
 see [fixtures/custom-theme.json](./fixtures/custom-theme.json) for the complete shape.
 
+## V1 complexity limits
+
+Heple rejects plans that exceed these budgets. It reports validation diagnostics and never
+silently truncates accepted content.
+
+| Budget | V1 limit |
+| --- | ---: |
+| Blocks across the whole plan | 500 |
+| Block nesting (top-level is 1; both `section` and `details` add a level) | 8 |
+| Items in an ordinary collection, including block lists, inline content, list items, steps, metadata, and highlighted lines | 100 |
+| Table dimensions | 20 columns, 200 rows, and 2,000 cells |
+| Any non-code string | 10,000 Unicode characters |
+| All strings in one plan, including code | 1,000,000 Unicode characters |
+| One code block | 100,000 Unicode characters and 5,000 lines |
+
+Sections retain their semantic heading limit of five nested section levels. Details do not
+increase section heading depth, but do count toward the eight-level overall nesting budget.
+Every `highlightLines` entry must refer to a line that exists in its code block.
+
 ## Development
 
 ```sh

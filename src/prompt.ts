@@ -78,6 +78,7 @@ export function getModelPrompt(): string {
 
   Use only the JSON shapes demonstrated below. Root blocks, sections, and details can contain any block shape. Omit/add fields and items as needed.
   Choices: list style unordered|ordered; callout tone info|warning|success; status planned|active|done|blocked; severity low|medium|high|critical; column align left|center|right.
+  V1 limits: 500 blocks total; 8 block nesting levels including details; 100 items per ordinary collection; tables up to 20 columns, 200 rows, and 2,000 cells; strings up to 10,000 Unicode characters and 1,000,000 total; code up to 100,000 characters and 5,000 lines. Highlight lines must exist in the code.
   Reference JSON:
 ${JSON.stringify(AUTHORING_EXAMPLE)}`;
 }
