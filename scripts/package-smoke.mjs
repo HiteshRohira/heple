@@ -9,10 +9,21 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { delimiter, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
+const isWindows = process.platform === "win32";
+
+function runCommand(command, args, options) {
+  if (!isWindows) return execFileAsync(command, args, options);
+  return execFileAsync(
+    process.env.ComSpec ?? "cmd.exe",
+    ["/d", "/s", "/c", command, ...args],
+    { ...options, windowsHide: true },
+  );
+}
+
 const projectRoot = resolve(import.meta.dirname, "..");
 const temporaryRoot = await mkdtemp(join(tmpdir(), "heple-package-smoke-"));
 const packDirectory = join(temporaryRoot, "pack");
@@ -22,9 +33,11 @@ try {
   await mkdir(packDirectory);
   await mkdir(consumerDirectory);
 
-  await execFileAsync("npm", ["pack", "--pack-destination", packDirectory], {
-    cwd: projectRoot,
-  });
+  await runCommand(
+    isWindows ? "npm.cmd" : "npm",
+    ["pack", "--pack-destination", packDirectory],
+    { cwd: projectRoot },
+  );
 
   const tarballs = (await readdir(packDirectory)).filter((file) => file.endsWith(".tgz"));
   if (tarballs.length !== 1 || !tarballs[0]) {
@@ -37,15 +50,15 @@ try {
     `${JSON.stringify({ private: true, type: "module" }, null, 2)}\n`,
     "utf8",
   );
-  await execFileAsync(
-    "npm",
+  await runCommand(
+    isWindows ? "npm.cmd" : "npm",
     [
       "install",
       "--ignore-scripts",
       "--no-audit",
       "--no-fund",
       "--no-package-lock",
-      tarballPath,
+      join("..", "pack", tarballs[0]),
     ],
     { cwd: consumerDirectory },
   );
@@ -96,12 +109,14 @@ if (!html.includes("Packed API smoke test") || !html.includes("--bg: #f7f8fa")) 
   const compiler = resolve(
     projectRoot,
     "node_modules",
-    ".bin",
-    process.platform === "win32" ? "tsc.cmd" : "tsc",
+    "typescript",
+    "lib",
+    "tsc.js",
   );
   await execFileAsync(
-    compiler,
+    process.execPath,
     [
+      compiler,
       "--module",
       "NodeNext",
       "--moduleResolution",
@@ -129,18 +144,17 @@ if (!html.includes("Packed API smoke test") || !html.includes("--bg: #f7f8fa")) 
   );
 
   const binaryDirectory = join(consumerDirectory, "node_modules", ".bin");
-  const cliResult = await execFileAsync(
-    process.platform === "win32" ? "heple.cmd" : "heple",
-    [planPath, "--output", outputPath, "--no-open"],
+  const cliResult = await runCommand(
+    isWindows ? join("node_modules", ".bin", "heple.cmd") : join(binaryDirectory, "heple"),
+    ["plan.json", "--output", "plan.html", "--no-open"],
     {
       cwd: consumerDirectory,
-      env: {
-        ...process.env,
-        PATH: `${binaryDirectory}${delimiter}${process.env.PATH ?? ""}`,
-      },
     },
   );
-  if (!cliResult.stdout.includes(`Created ${outputPath}`)) {
+  const createdArtifact = cliResult.stdout
+    .split(/\r?\n/u)
+    .some((line) => line.startsWith("Created ") && line.endsWith("plan.html"));
+  if (!createdArtifact) {
     throw new Error("The packed CLI did not report its generated artifact");
   }
   if (!(await readFile(outputPath, "utf8")).includes("Packed CLI smoke test")) {

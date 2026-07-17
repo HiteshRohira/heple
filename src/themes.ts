@@ -104,7 +104,7 @@ function inspectString(
     return;
   }
 
-  if (cssValue && /\b(?:url|image-set|cross-fade|element)\s*\(/iu.test(value)) {
+  if (cssValue && /\b(?:url|src|image|image-set|cross-fade|element)\s*\(/iu.test(value)) {
     issues.push({ path, message: "must not load an external resource" });
   }
 }

@@ -148,6 +148,20 @@ describe("renderPlan", () => {
       }),
     ).toThrow("/dark/background: must not load an external resource");
 
+    for (const background of [
+      'image("https://example.com/pixel.png")',
+      'src("https://example.com/pixel.png")',
+    ]) {
+      expect(() =>
+        renderPlan(plan, {
+          theme: {
+            ...customTheme,
+            dark: { ...customTheme.dark, background },
+          },
+        }),
+      ).toThrow("/dark/background: must not load an external resource");
+    }
+
     expect(() =>
       renderPlan(plan, {
         theme: {

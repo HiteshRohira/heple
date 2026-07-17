@@ -71,6 +71,10 @@ const html = renderPlan(normalizePlan(result.value), {
 });
 ```
 
+The JSON subpath import requires `"resolveJsonModule": true`. For Node.js ESM
+consumers, set both `"module"` and `"moduleResolution"` to `"NodeNext"` in
+`tsconfig.json`.
+
 `renderPlan` validates custom theme objects at runtime before adding their semantic tokens to
 the generated CSS. The shipped [custom-theme.json](./custom-theme.json) shows the complete
 supported shape, including paired light and dark modes. It is also exported as
