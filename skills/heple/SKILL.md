@@ -9,7 +9,7 @@ Create `plan.json` as the source of truth, validate it, then render it with Hepl
 
 ## Workflow
 
-1. Inspect the live contract. Run `heple capabilities > /tmp/heple-capabilities.json`. Use its `documentSchema` as authoritative; use `heple prompt` for compact authoring guidance.
+1. Inspect the live contract. Run `heple capabilities`. Use its `documentSchema` as authoritative; use `heple prompt` for compact authoring guidance.
 2. Write JSON only to `plan.json`. Never add raw HTML, CSS, JavaScript, Markdown fences, or fields absent from the schema.
 3. Run `heple validate plan.json`. Validation is mandatory. If it fails, fix every diagnostic and rerun until it prints `Plan is valid`.
 4. Render safely for automation:

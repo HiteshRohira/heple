@@ -73,7 +73,7 @@ If you are a human, run heple example.
       version: string;
       documentSchema: unknown;
       commands: Record<string, string>;
-      rendering: { opensBrowserByDefault: boolean };
+      rendering: { opensBrowserByDefault: boolean; nonInteractiveFlag: string };
       themes: string[];
     };
     const schema = JSON.parse((await runCli(["schema"])).stdout) as unknown;
@@ -94,6 +94,7 @@ If you are a human, run heple example.
     expect(capabilities.commands.renderNonInteractive)
       .toBe("heple plan.json --output ./plan.html --no-open");
     expect(capabilities.rendering.opensBrowserByDefault).toBe(true);
+    expect(capabilities.rendering.nonInteractiveFlag).toBe("--no-open");
     expect(capabilities.themes).toEqual([
       "default",
       "caffeine",
