@@ -43,7 +43,6 @@ try {
   if (tarballs.length !== 1 || !tarballs[0]) {
     throw new Error(`Expected one npm tarball, found ${tarballs.length}`);
   }
-  const tarballPath = join(packDirectory, tarballs[0]);
 
   await writeFile(
     join(consumerDirectory, "package.json"),
