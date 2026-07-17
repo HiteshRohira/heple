@@ -37,6 +37,8 @@ heple plan.json --theme clay --output plan.html --no-open
 heple plan.json --no-navigation
 heple example # render and open the element catalog
 heple validate plan.json # validate a plan without rendering it
+heple validate plan.json --json # validate with the versioned JSON protocol
+heple plan.json --json --no-open # render with the versioned JSON protocol
 heple schema # print the canonical JSON Schema
 heple prompt # print plan-authoring instructions and a compact format example
 heple themes # choose and save the default theme
@@ -45,6 +47,12 @@ heple themes # choose and save the default theme
 Built-in themes are `default`, `caffeine`, `clay`, `supabase`, `twitter`, and `mono`.
 Programmatic rendering also accepts a custom theme definition without registering a new built-in;
 see [fixtures/custom-theme.json](./fixtures/custom-theme.json) for the complete shape.
+
+Automated callers can add `--json` to validation or rendering without changing the
+default browser-opening behavior. Successful envelopes are written to stdout, error
+envelopes are written to stderr, and invalid input exits differently from operational
+failures. The complete stable contract is documented in
+[docs/cli-protocol-v1.md](./docs/cli-protocol-v1.md).
 
 ## Development
 

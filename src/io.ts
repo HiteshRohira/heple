@@ -1,13 +1,23 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { basename, dirname, extname, resolve } from "node:path";
 
+export class JsonParseError extends Error {
+  readonly detail: string;
+
+  constructor(detail: string) {
+    super(`Could not parse JSON: ${detail}`);
+    this.name = "JsonParseError";
+    this.detail = detail;
+  }
+}
+
 export async function readInput(inputPath: string): Promise<unknown> {
   const source = inputPath === "-" ? await readStdin() : await readFile(inputPath, "utf8");
   try {
     return JSON.parse(source) as unknown;
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
-    throw new Error(`Could not parse JSON: ${detail}`);
+    throw new JsonParseError(detail);
   }
 }
 

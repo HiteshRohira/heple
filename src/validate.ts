@@ -2,6 +2,12 @@ import { Ajv2020, type ErrorObject } from "ajv/dist/2020.js";
 import { PlanDocumentSchema, type Block, type Inline, type PlanDocument } from "./schema.js";
 
 export interface ValidationIssue {
+  code:
+    | "JSON_SYNTAX_ERROR"
+    | "PLAN_SCHEMA_VIOLATION"
+    | "UNSAFE_LINK_PROTOCOL"
+    | "SECTION_DEPTH_EXCEEDED"
+    | "TABLE_CELL_COUNT_MISMATCH";
   path: string;
   message: string;
 }
@@ -19,6 +25,7 @@ function schemaIssue(error: ErrorObject): ValidationIssue {
     ? `${base}/${String(error.params.additionalProperty)}`
     : base || "/";
   return {
+    code: "PLAN_SCHEMA_VIOLATION",
     path,
     message: error.message ?? "is invalid",
   };
@@ -38,6 +45,7 @@ function inspectInline(content: Inline[], path: string, issues: ValidationIssue[
   content.forEach((inline, index) => {
     if (inline.type === "link" && !isSafeHref(inline.href)) {
       issues.push({
+        code: "UNSAFE_LINK_PROTOCOL",
         path: `${path}/${index}/href`,
         message: "must use http, https, mailto, or a #fragment",
       });
@@ -56,7 +64,11 @@ function inspectBlocks(
     switch (block.type) {
       case "section":
         if (sectionDepth >= 5) {
-          issues.push({ path: blockPath, message: "sections may be nested at most 5 levels" });
+          issues.push({
+            code: "SECTION_DEPTH_EXCEEDED",
+            path: blockPath,
+            message: "sections may be nested at most 5 levels",
+          });
         }
         inspectBlocks(block.blocks, `${blockPath}/blocks`, issues, sectionDepth + 1);
         break;
@@ -76,6 +88,7 @@ function inspectBlocks(
         block.rows.forEach((row, rowIndex) => {
           if (row.cells.length !== block.columns.length) {
             issues.push({
+              code: "TABLE_CELL_COUNT_MISMATCH",
               path: `${blockPath}/rows/${rowIndex}/cells`,
               message: `must contain exactly ${block.columns.length} cells`,
             });

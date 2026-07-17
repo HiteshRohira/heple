@@ -3,7 +3,8 @@ import { mkdir, mkdtemp, readFile, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { promisify } from "node:util";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { createProgram } from "../src/cli.js";
 
 const execFileAsync = promisify(execFile);
 const cli = resolve("src/cli.ts");
@@ -17,6 +18,19 @@ async function runCli(args: string[], env?: NodeJS.ProcessEnv, cwd = process.cwd
     cwd,
     env: env ? { ...process.env, ...env } : process.env,
   });
+}
+
+async function runFailingCli(args: string[], env?: NodeJS.ProcessEnv) {
+  try {
+    await runCli(args, env);
+    throw new Error("Expected CLI command to fail");
+  } catch (error) {
+    return error as Error & {
+      code: number;
+      stdout: string;
+      stderr: string;
+    };
+  }
 }
 
 describe("heple CLI", () => {
@@ -67,6 +81,32 @@ If you are a human, run heple example.
     expect(result.stderr).toBe("");
   });
 
+  it("validates with the v1 machine-readable success envelope", async () => {
+    const result = await runCli([
+      "validate",
+      "fixtures/implementation-plan.json",
+      "--json",
+    ]);
+
+    expect(result.stdout).toBe(
+      '{"protocolVersion":"1","ok":true,"command":"validate","data":{"valid":true}}\n',
+    );
+    expect(result.stderr).toBe("");
+  });
+
+  it("accepts the JSON protocol option before the validate subcommand", async () => {
+    const result = await runCli([
+      "--json",
+      "validate",
+      "fixtures/implementation-plan.json",
+    ]);
+
+    expect(result.stdout).toBe(
+      '{"protocolVersion":"1","ok":true,"command":"validate","data":{"valid":true}}\n',
+    );
+    expect(result.stderr).toBe("");
+  });
+
   it("renders without launching a browser", async () => {
     const directory = await mkdtemp(join(tmpdir(), "heple-test-"));
     const output = join(directory, "plan.html");
@@ -83,6 +123,182 @@ If you are a human, run heple example.
     const html = await readFile(output, "utf8");
     expect(html).toContain("--bg: #e7e5e4");
     expect(html).toContain('<nav class="toc"');
+  });
+
+  it("renders with one deterministic machine-readable success envelope", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "heple-test-"));
+    const output = join(directory, "plan.html");
+    const result = await runCli([
+      "fixtures/implementation-plan.json",
+      "--theme",
+      "clay",
+      "--output",
+      output,
+      "--no-open",
+      "--json",
+    ]);
+
+    expect(result.stdout).toBe(
+      `${JSON.stringify({
+        protocolVersion: "1",
+        ok: true,
+        command: "render",
+        data: {
+          outputPath: output,
+          opened: false,
+          theme: "clay",
+          navigation: true,
+        },
+      })}\n`,
+    );
+    expect(result.stderr).toBe("");
+  });
+
+  it("keeps browser opening enabled by default in machine mode", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "heple-test-"));
+    const output = join(directory, "plan.html");
+    const writes: string[] = [];
+    let openedPath: string | undefined;
+    const write = vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
+      writes.push(String(chunk));
+      return true;
+    });
+
+    try {
+      await createProgram({
+        openPath: async (path) => {
+          openedPath = path;
+        },
+      }).parseAsync([
+        "node",
+        "heple",
+        "fixtures/implementation-plan.json",
+        "--theme",
+        "default",
+        "--output",
+        output,
+        "--json",
+      ]);
+    } finally {
+      write.mockRestore();
+    }
+
+    expect(openedPath).toBe(output);
+    expect(writes.join("")).toBe(
+      `${JSON.stringify({
+        protocolVersion: "1",
+        ok: true,
+        command: "render",
+        data: {
+          outputPath: output,
+          opened: true,
+          theme: "default",
+          navigation: true,
+        },
+      })}\n`,
+    );
+  });
+
+  it("reports invalid JSON as invalid input on stderr only", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "heple-test-"));
+    const input = join(directory, "invalid.json");
+    await writeFile(input, "{", "utf8");
+
+    const result = await runFailingCli(["validate", input, "--json"]);
+    const envelope = JSON.parse(result.stderr) as Record<string, unknown>;
+
+    expect(result.code).toBe(2);
+    expect(result.stdout).toBe("");
+    expect(envelope).toMatchObject({
+      protocolVersion: "1",
+      ok: false,
+      command: "validate",
+      error: {
+        code: "INVALID_JSON",
+        class: "invalid_input",
+        diagnostics: [{
+          code: "JSON_SYNTAX_ERROR",
+          path: "/",
+        }],
+      },
+    });
+    expect(result.stderr).toBe(`${JSON.stringify(envelope)}\n`);
+  });
+
+  it("reports stable validation diagnostics and invalid-input exit class", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "heple-test-"));
+    const input = join(directory, "unsupported.json");
+    await writeFile(input, '{"version":"2"}\n', "utf8");
+
+    const result = await runFailingCli([input, "--no-open", "--json"]);
+    const envelope = JSON.parse(result.stderr) as {
+      error: { code: string; class: string; diagnostics: unknown[] };
+    };
+
+    expect(result.code).toBe(2);
+    expect(result.stdout).toBe("");
+    expect(envelope.error).toMatchObject({
+      code: "INVALID_PLAN",
+      class: "invalid_input",
+      diagnostics: [{
+        code: "PLAN_SCHEMA_VIOLATION",
+        path: "/version",
+        message: "must be equal to constant",
+      }],
+    });
+    expect(result.stderr).toBe(`${JSON.stringify(JSON.parse(result.stderr))}\n`);
+  });
+
+  it("reports output failures as operational failures on stderr only", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "heple-test-"));
+    const blockedParent = join(directory, "not-a-directory");
+    await writeFile(blockedParent, "file", "utf8");
+
+    const result = await runFailingCli([
+      "fixtures/implementation-plan.json",
+      "--output",
+      join(blockedParent, "plan.html"),
+      "--no-open",
+      "--json",
+    ]);
+    const envelope = JSON.parse(result.stderr) as Record<string, unknown>;
+
+    expect(result.code).toBe(1);
+    expect(result.stdout).toBe("");
+    expect(envelope).toMatchObject({
+      protocolVersion: "1",
+      ok: false,
+      command: "render",
+      error: {
+        code: "OUTPUT_WRITE_FAILED",
+        class: "operational",
+      },
+    });
+    expect(result.stderr).toBe(`${JSON.stringify(envelope)}\n`);
+  });
+
+  it("keeps human-readable invalid-plan errors by default", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "heple-test-"));
+    const input = join(directory, "unsupported.json");
+    await writeFile(input, '{"version":"2"}\n', "utf8");
+
+    const result = await runFailingCli(["validate", input]);
+
+    expect(result.code).toBe(2);
+    expect(result.stdout).toBe("");
+    expect(result.stderr).toBe(
+      "heple: Plan validation failed:\n/version: must be equal to constant\n",
+    );
+  });
+
+  it("reports malformed machine-mode invocations with a stable argument error", async () => {
+    const result = await runFailingCli(["--json"]);
+
+    expect(result.code).toBe(2);
+    expect(result.stdout).toBe("");
+    expect(result.stderr).toBe(
+      '{"protocolVersion":"1","ok":false,"command":"render","error":{"code":"INVALID_ARGUMENT","class":"invalid_input","message":"missing required plan JSON input"}}\n',
+    );
   });
 
   it("opts out of the right-side navigator", async () => {
@@ -120,7 +336,7 @@ If you are a human, run heple example.
         "claymorphism",
         "--no-open",
       ]),
-    ).rejects.toMatchObject({ code: 1 });
+    ).rejects.toMatchObject({ code: 2 });
   });
 
   it("saves and uses the selected default theme", async () => {

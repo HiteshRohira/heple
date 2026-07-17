@@ -50,6 +50,7 @@ describe("validatePlan", () => {
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.issues).toContainEqual({
+        code: "PLAN_SCHEMA_VIOLATION",
         path: "/rawHtml",
         message: "must NOT have additional properties",
       });
@@ -84,6 +85,7 @@ describe("validatePlan", () => {
       ok: false,
       issues: [
         {
+          code: "UNSAFE_LINK_PROTOCOL",
           path: "/blocks/0/content/0/href",
           message: "must use http, https, mailto, or a #fragment",
         },
@@ -106,7 +108,11 @@ describe("validatePlan", () => {
 
     expect(result).toEqual({
       ok: false,
-      issues: [{ path: "/blocks/0/rows/0/cells", message: "must contain exactly 2 cells" }],
+      issues: [{
+        code: "TABLE_CELL_COUNT_MISMATCH",
+        path: "/blocks/0/rows/0/cells",
+        message: "must contain exactly 2 cells",
+      }],
     });
   });
 
