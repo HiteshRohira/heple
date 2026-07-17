@@ -83,6 +83,50 @@ describe("validatePlan", () => {
     });
   });
 
+  it("distinguishes missing and non-string block or inline types", () => {
+    expect([
+      validatePlan({ version: "1", blocks: [{}] }),
+      validatePlan({ version: "1", blocks: [{ type: 1 }] }),
+      validatePlan({
+        version: "1",
+        blocks: [{ type: "paragraph", content: [{ text: "Missing type" }] }],
+      }),
+      validatePlan({
+        version: "1",
+        blocks: [{ type: "paragraph", content: [{ type: 1, text: "Wrong type" }] }],
+      }),
+    ]).toEqual([
+      {
+        ok: false,
+        issues: [{
+          path: "/blocks/0/type",
+          message: "block type is required; expected one of: section, paragraph, list, callout, steps, table, code, details",
+        }],
+      },
+      {
+        ok: false,
+        issues: [{
+          path: "/blocks/0/type",
+          message: "block type must be a string; expected one of: section, paragraph, list, callout, steps, table, code, details",
+        }],
+      },
+      {
+        ok: false,
+        issues: [{
+          path: "/blocks/0/content/0/type",
+          message: "inline type is required; expected one of: text, link, strong, emphasis, code, status, severity",
+        }],
+      },
+      {
+        ok: false,
+        issues: [{
+          path: "/blocks/0/content/0/type",
+          message: "inline type must be a string; expected one of: text, link, strong, emphasis, code, status, severity",
+        }],
+      },
+    ]);
+  });
+
   it("reports only relevant missing and invalid fields for known variants", () => {
     expect(validatePlan({
       version: "1",
