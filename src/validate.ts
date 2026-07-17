@@ -99,6 +99,21 @@ function inspectComplexity(input: unknown): ValidationIssue[] {
     }
   };
 
+  const inspectArrayLength = (
+    value: unknown,
+    path: string,
+    maxItems: number,
+  ): value is unknown[] => {
+    if (!Array.isArray(value)) return false;
+    if (value.length > maxItems) {
+      addIssue({
+        path,
+        message: `must contain at most ${maxItems} items (v1 limit)`,
+      });
+    }
+    return true;
+  };
+
   const pushArray = (
     value: unknown,
     path: string,
@@ -106,13 +121,7 @@ function inspectComplexity(input: unknown): ValidationIssue[] {
     kind: InspectionKind,
     blockDepth?: number,
   ) => {
-    if (!Array.isArray(value)) return;
-    if (value.length > maxItems) {
-      addIssue({
-        path,
-        message: `must contain at most ${maxItems} items (v1 limit)`,
-      });
-    }
+    if (!inspectArrayLength(value, path, maxItems)) return;
     const inspectedLength = Math.min(value.length, maxItems);
     for (let index = inspectedLength - 1; index >= 0; index -= 1) {
       stack.push({
@@ -132,6 +141,8 @@ function inspectComplexity(input: unknown): ValidationIssue[] {
       const fieldLimit = entry.code
         ? V1_COMPLEXITY_BUDGETS.codeCharacters
         : V1_COMPLEXITY_BUDGETS.stringCharacters;
+      // Counting up to the aggregate budget is necessary even after the field
+      // limit is crossed so later strings cannot evade the plan-wide limit.
       const length = unicodeLengthUpTo(
         entry.value,
         Math.max(fieldLimit, V1_COMPLEXITY_BUDGETS.totalStringCharacters),
@@ -299,11 +310,10 @@ function inspectComplexity(input: unknown): ValidationIssue[] {
             pushString(entry.value, entry.path, "language");
             pushString(entry.value, entry.path, "filename");
             pushString(entry.value, entry.path, "caption");
-            pushArray(
+            inspectArrayLength(
               entry.value.highlightLines,
               propertyPath(entry.path, "highlightLines"),
               V1_COMPLEXITY_BUDGETS.collectionItems,
-              "string",
             );
             break;
           case "details":
@@ -462,6 +472,8 @@ function inspectBlocks(
 export function validatePlan(input: unknown): ValidationResult {
   const complexityIssues = inspectComplexity(input);
   if (complexityIssues.length > 0) {
+    // Later phases recurse or iterate over input collections, so complexity
+    // errors must be fixed before schema and semantic diagnostics are safe.
     return { ok: false, issues: complexityIssues };
   }
 
