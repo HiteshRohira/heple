@@ -3,10 +3,17 @@
 import { readFileSync, realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
-import { Argument, Command, Option } from "commander";
+import { Argument, Command, CommanderError, Option } from "commander";
 import open from "open";
+import {
+  CliFailure,
+  type CliCommand,
+  errorEnvelope,
+  serializeEnvelope,
+  successEnvelope,
+} from "./cli-protocol.js";
 import { getDefaultTheme, getExampleOutputPath, setDefaultTheme } from "./config.js";
-import { defaultOutputPath, readInput, writeArtifact } from "./io.js";
+import { defaultOutputPath, JsonParseError, readInput, writeArtifact } from "./io.js";
 import { normalizePlan } from "./normalize.js";
 import { getModelPrompt } from "./prompt.js";
 import { renderPlan } from "./render.js";
@@ -39,12 +46,55 @@ interface RenderCommandOptions {
   theme?: ThemeName;
   open: boolean;
   navigation?: boolean;
+  json?: boolean;
+}
+
+interface ValidateCommandOptions {
+  json?: boolean;
+}
+
+interface RenderResult {
+  outputPath: string;
+  opened: boolean;
+  theme: ThemeName;
+  navigation: boolean;
+}
+
+function errorDetail(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+async function loadInput(inputPath: string): Promise<unknown> {
+  try {
+    return await readInput(inputPath);
+  } catch (error) {
+    if (error instanceof JsonParseError) {
+      throw new CliFailure(
+        "INVALID_JSON",
+        "invalid_input",
+        error.message,
+        {
+          diagnostics: [{ code: "JSON_SYNTAX_ERROR", path: "", message: error.detail }],
+        },
+      );
+    }
+    throw new CliFailure(
+      "INPUT_READ_FAILED",
+      "operational",
+      `Could not read input: ${errorDetail(error)}`,
+    );
+  }
 }
 
 function assertValid(input: unknown) {
   const result = validatePlan(input);
   if (!result.ok) {
-    throw new Error(`Plan validation failed:\n${formatValidationIssues(result.issues)}`);
+    throw new CliFailure(
+      "INVALID_PLAN",
+      "invalid_input",
+      `Plan validation failed:\n${formatValidationIssues(result.issues)}`,
+      { diagnostics: result.issues },
+    );
   }
   return result.value;
 }
@@ -54,19 +104,73 @@ async function renderCommand(
   options: RenderCommandOptions,
   dependencies: CliDependencies,
   fallbackOutputPath?: string,
-): Promise<void> {
-  const input = await readInput(inputPath);
-  const plan = normalizePlan(assertValid(input));
+  json = false,
+): Promise<RenderResult> {
+  const input = await loadInput(inputPath);
+  const validatedPlan = assertValid(input);
   const outputPath = resolve(options.output ?? fallbackOutputPath ?? defaultOutputPath(inputPath));
-  const html = renderPlan(plan, {
-    theme: options.theme ?? await getDefaultTheme(),
-    navigation: options.navigation ?? true,
-  });
-  await writeArtifact(outputPath, html);
-  process.stdout.write(`Created ${outputPath}\n`);
+  let theme: ThemeName;
+  try {
+    theme = options.theme ?? await getDefaultTheme();
+  } catch (error) {
+    throw new CliFailure(
+      "CONFIG_READ_FAILED",
+      "operational",
+      `Could not read configuration: ${errorDetail(error)}`,
+    );
+  }
+  const navigation = options.navigation ?? true;
+  let html: string;
+  try {
+    const plan = normalizePlan(validatedPlan);
+    html = renderPlan(plan, { theme, navigation });
+  } catch (error) {
+    throw new CliFailure(
+      "RENDER_FAILED",
+      "operational",
+      `Could not render plan: ${errorDetail(error)}`,
+    );
+  }
+  try {
+    await writeArtifact(outputPath, html);
+  } catch (error) {
+    throw new CliFailure(
+      "OUTPUT_WRITE_FAILED",
+      "operational",
+      `Could not write artifact: ${errorDetail(error)}`,
+    );
+  }
+  if (!json) {
+    process.stdout.write(`Created ${outputPath}\n`);
+  }
 
+  let opened = false;
   if (options.open) {
-    await dependencies.openPath(outputPath);
+    try {
+      await dependencies.openPath(outputPath);
+      opened = true;
+    } catch (error) {
+      throw new CliFailure(
+        "BROWSER_OPEN_FAILED",
+        "operational",
+        `Could not open artifact: ${errorDetail(error)}`,
+        { details: { outputPath } },
+      );
+    }
+  }
+  return { outputPath, opened, theme, navigation };
+}
+
+function writeRenderResult(
+  result: RenderResult,
+  json: boolean,
+  command: Extract<CliCommand, "render" | "example"> = "render",
+): void {
+  if (json) {
+    process.stdout.write(serializeEnvelope(successEnvelope(command, result)));
+    return;
+  }
+  if (result.opened) {
     process.stdout.write("Opened in your default browser\n");
   }
 }
@@ -75,6 +179,19 @@ export function createProgram(
   dependencies: CliDependencies = { openPath: (path) => open(path) },
 ): Command {
   const program = new Command();
+  const usesJsonProtocol = (options: { json?: boolean }): boolean =>
+    options.json === true || program.opts<{ json?: boolean }>().json === true;
+  const rejectUnsupportedJson = (
+    command: Extract<CliCommand, "schema" | "prompt" | "themes">,
+  ): void => {
+    if (program.opts<{ json?: boolean }>().json) {
+      throw new CliFailure(
+        "INVALID_ARGUMENT",
+        "invalid_input",
+        `option '--json' is not supported by command '${command}'`,
+      );
+    }
+  };
   program
     .name("heple")
     .description("Turn structured JSON plans into deterministic HTML")
@@ -88,12 +205,21 @@ export function createProgram(
     )
     .option("--no-navigation", "hide the right-side section navigator")
     .option("--no-open", "do not open the generated plan")
+    .option("--json", "emit the versioned machine-readable CLI protocol")
     .action(async (input: string | undefined, options: RenderCommandOptions) => {
       if (!input) {
+        if (options.json) {
+          throw new CliFailure(
+            "INVALID_ARGUMENT",
+            "invalid_input",
+            "missing required plan JSON input",
+          );
+        }
         process.stdout.write(WELCOME_MESSAGE);
         return;
       }
-      await renderCommand(input, options, dependencies);
+      const json = usesJsonProtocol(options);
+      writeRenderResult(await renderCommand(input, options, dependencies, undefined, json), json);
     });
 
   program
@@ -105,16 +231,23 @@ export function createProgram(
     )
     .option("--no-navigation", "hide the right-side section navigator")
     .option("--no-open", "do not open the generated catalog")
+    .option("--json", "emit the versioned machine-readable CLI protocol")
     .action(async (options: RenderCommandOptions | Command) => {
       const parsedOptions = options instanceof Command
         ? (options.opts() as RenderCommandOptions)
         : options;
       const examplePath = fileURLToPath(new URL("../example.json", import.meta.url));
-      await renderCommand(
-        examplePath,
-        parsedOptions,
-        dependencies,
-        getExampleOutputPath(),
+      const json = usesJsonProtocol(parsedOptions);
+      writeRenderResult(
+        await renderCommand(
+          examplePath,
+          parsedOptions,
+          dependencies,
+          getExampleOutputPath(),
+          json,
+        ),
+        json,
+        "example",
       );
     });
 
@@ -122,15 +255,21 @@ export function createProgram(
     .command("validate")
     .description("Validate a plan without rendering it")
     .argument("<input>", "plan JSON file, or - for stdin")
-    .action(async (inputPath: string) => {
-      assertValid(await readInput(inputPath));
-      process.stdout.write("Plan is valid\n");
+    .option("--json", "emit the versioned machine-readable CLI protocol")
+    .action(async (inputPath: string, options: ValidateCommandOptions) => {
+      assertValid(await loadInput(inputPath));
+      if (usesJsonProtocol(options)) {
+        process.stdout.write(serializeEnvelope(successEnvelope("validate", { valid: true })));
+      } else {
+        process.stdout.write("Plan is valid\n");
+      }
     });
 
   program
     .command("schema")
     .description("Print the canonical JSON Schema")
     .action(() => {
+      rejectUnsupportedJson("schema");
       process.stdout.write(`${JSON.stringify(getJsonSchema(), null, 2)}\n`);
     });
 
@@ -138,6 +277,7 @@ export function createProgram(
     .command("prompt")
     .description("Print plan-authoring instructions and a compact format example")
     .action(() => {
+      rejectUnsupportedJson("prompt");
       process.stdout.write(`${getModelPrompt()}\n`);
     });
 
@@ -149,6 +289,7 @@ export function createProgram(
         .choices([...THEME_NAMES]),
     )
     .action(async (theme: ThemeName | undefined) => {
+      rejectUnsupportedJson("themes");
       const currentTheme = await getDefaultTheme();
       if (theme) {
         await setDefaultTheme(theme);
@@ -178,8 +319,78 @@ export function createProgram(
   return program;
 }
 
-export async function run(argv = process.argv): Promise<void> {
-  await createProgram().parseAsync(argv);
+function commandIdentifier(command: Command): CliCommand {
+  const name = command.name();
+  return name === "heple" ? "render" : name as CliCommand;
+}
+
+function configureFailureHandling(
+  command: Command,
+  json: boolean,
+  setCommand: (command: CliCommand) => void,
+): void {
+  const identifier = commandIdentifier(command);
+  command.exitOverride((error) => {
+    setCommand(identifier);
+    throw error;
+  });
+  if (json) {
+    command.configureOutput({ writeErr: () => undefined });
+  }
+  for (const subcommand of command.commands) {
+    configureFailureHandling(subcommand, json, setCommand);
+  }
+}
+
+function requestsJsonProtocol(argv: string[]): boolean {
+  for (const argument of argv.slice(2)) {
+    if (argument === "--") return false;
+    if (argument === "--json") return true;
+  }
+  return false;
+}
+
+export async function run(
+  argv = process.argv,
+  dependencies?: CliDependencies,
+): Promise<void> {
+  const json = requestsJsonProtocol(argv);
+  let command: CliCommand = "render";
+  const program = createProgram(dependencies);
+  program.hook("preAction", (_thisCommand, actionCommand) => {
+    command = commandIdentifier(actionCommand);
+  });
+  configureFailureHandling(program, json, (selectedCommand) => {
+    command = selectedCommand;
+  });
+
+  try {
+    await program.parseAsync(argv);
+  } catch (error) {
+    if (error instanceof CommanderError) {
+      if (error.exitCode === 0) return;
+      process.exitCode = 2;
+      if (json) {
+        const failure = new CliFailure(
+          "INVALID_ARGUMENT",
+          "invalid_input",
+          error.message.replace(/^error: /, ""),
+        );
+        process.stderr.write(serializeEnvelope(errorEnvelope(command, failure)));
+      }
+      return;
+    }
+
+    const failure = error instanceof CliFailure
+      ? error
+      : new CliFailure("INTERNAL_ERROR", "operational", errorDetail(error));
+    process.exitCode = failure.exitCode;
+    if (json) {
+      process.stderr.write(serializeEnvelope(errorEnvelope(command, failure)));
+    } else {
+      process.stderr.write(`heple: ${failure.message}\n`);
+    }
+  }
 }
 
 const isEntryPoint = process.argv[1]
@@ -187,9 +398,5 @@ const isEntryPoint = process.argv[1]
   : false;
 
 if (isEntryPoint) {
-  run().catch((error: unknown) => {
-    const message = error instanceof Error ? error.message : String(error);
-    process.stderr.write(`heple: ${message}\n`);
-    process.exitCode = 1;
-  });
+  void run();
 }
