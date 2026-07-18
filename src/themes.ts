@@ -1,4 +1,4 @@
-import type { ThemeName } from "./schema.js";
+import { THEME_NAMES, type ThemeName } from "./schema.js";
 
 export interface ThemeMode {
   background: string;
@@ -31,8 +31,161 @@ export interface ThemeDefinition {
   dark: ThemeMode;
 }
 
+export interface ThemeValidationIssue {
+  path: string;
+  message: string;
+}
+
+export type ThemeValidationResult =
+  | { ok: true; value: ThemeName | ThemeDefinition }
+  | { ok: false; issues: ThemeValidationIssue[] };
+
 const sansFallback = "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
 const monoFallback = 'ui-monospace, "SFMono-Regular", Consolas, monospace';
+
+const definitionFields = [
+  "description",
+  "radius",
+  "fontSans",
+  "fontMono",
+  "shadow",
+  "light",
+  "dark",
+] as const;
+
+const requiredModeFields = [
+  "background",
+  "foreground",
+  "surface",
+  "raised",
+  "muted",
+  "border",
+  "accent",
+  "accentForeground",
+  "accentSoft",
+  "danger",
+] as const;
+
+const optionalModeFields = [
+  "info",
+  "success",
+  "warning",
+  "sidebar",
+  "sidebarForeground",
+  "sidebarAccent",
+  "sidebarAccentForeground",
+  "sidebarBorder",
+] as const;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function inspectString(
+  value: unknown,
+  path: string,
+  issues: ThemeValidationIssue[],
+  cssValue = false,
+): void {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    issues.push({ path, message: "must be a non-empty string" });
+    return;
+  }
+
+  if (
+    cssValue
+    && (
+      /[\u0000-\u001f\u007f;{}<>\\]/u.test(value)
+      || value.includes("/*")
+      || value.includes("*/")
+    )
+  ) {
+    issues.push({ path, message: "must be a single safe CSS value" });
+    return;
+  }
+
+  if (cssValue && /\b(?:url|src|image|image-set|cross-fade|element)\s*\(/iu.test(value)) {
+    issues.push({ path, message: "must not load an external resource" });
+  }
+}
+
+function inspectMode(
+  value: unknown,
+  path: string,
+  issues: ThemeValidationIssue[],
+): void {
+  if (!isRecord(value)) {
+    issues.push({ path, message: "must be an object" });
+    return;
+  }
+
+  const allowedFields = new Set<string>([...requiredModeFields, ...optionalModeFields]);
+  for (const field of Object.keys(value)) {
+    if (!allowedFields.has(field)) {
+      issues.push({ path: `${path}/${field}`, message: "is not a supported theme token" });
+    }
+  }
+
+  for (const field of requiredModeFields) {
+    inspectString(value[field], `${path}/${field}`, issues, true);
+  }
+  for (const field of optionalModeFields) {
+    if (value[field] !== undefined) {
+      inspectString(value[field], `${path}/${field}`, issues, true);
+    }
+  }
+}
+
+export function validateTheme(theme: unknown): ThemeValidationResult {
+  if (typeof theme === "string") {
+    return (THEME_NAMES as readonly string[]).includes(theme)
+      ? { ok: true, value: theme as ThemeName }
+      : {
+          ok: false,
+          issues: [{ path: "/", message: `must be one of: ${THEME_NAMES.join(", ")}` }],
+        };
+  }
+
+  if (!isRecord(theme)) {
+    return {
+      ok: false,
+      issues: [{ path: "/", message: "must be a built-in theme name or theme object" }],
+    };
+  }
+
+  const issues: ThemeValidationIssue[] = [];
+  const allowedFields = new Set<string>(definitionFields);
+  for (const field of Object.keys(theme)) {
+    if (!allowedFields.has(field)) {
+      issues.push({ path: `/${field}`, message: "is not a supported theme property" });
+    }
+  }
+
+  inspectString(theme.description, "/description", issues);
+  inspectString(theme.radius, "/radius", issues, true);
+  inspectString(theme.fontSans, "/fontSans", issues, true);
+  inspectString(theme.fontMono, "/fontMono", issues, true);
+  inspectString(theme.shadow, "/shadow", issues, true);
+  inspectMode(theme.light, "/light", issues);
+  inspectMode(theme.dark, "/dark", issues);
+
+  return issues.length > 0
+    ? { ok: false, issues }
+    : { ok: true, value: theme as unknown as ThemeDefinition };
+}
+
+export function formatThemeValidationIssues(issues: ThemeValidationIssue[]): string {
+  return issues.map((issue) => `${issue.path}: ${issue.message}`).join("\n");
+}
+
+function assertValidTheme(theme: unknown): asserts theme is ThemeName | ThemeDefinition {
+  const result = validateTheme(theme);
+  if (!result.ok) {
+    throw new TypeError(
+      `Invalid theme definition:\n${formatThemeValidationIssues(result.issues)}`,
+    );
+  }
+}
 
 const themes: Record<ThemeName, ThemeDefinition> = {
   default: {
@@ -216,6 +369,7 @@ function modeCss(mode: ThemeMode, dark: boolean): string {
 }
 
 export function themeCss(theme: ThemeName | ThemeDefinition): string {
+  assertValidTheme(theme);
   const definition = typeof theme === "string" ? themes[theme] : theme;
   return `
 :root {

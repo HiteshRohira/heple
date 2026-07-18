@@ -43,8 +43,42 @@ heple themes # choose and save the default theme
 ```
 
 Built-in themes are `default`, `caffeine`, `clay`, `supabase`, `twitter`, and `mono`.
-Programmatic rendering also accepts a custom theme definition without registering a new built-in;
-see [fixtures/custom-theme.json](./fixtures/custom-theme.json) for the complete shape.
+Programmatic rendering also accepts a custom theme definition without registering a new built-in.
+
+## Programmatic API
+
+The package root exports the typed schema, validation, normalization, and rendering API:
+
+```ts
+import {
+  formatValidationIssues,
+  normalizePlan,
+  renderPlan,
+  validatePlan,
+  type ThemeDefinition,
+} from "heple";
+import customThemeJson from "heple/custom-theme.json" with { type: "json" };
+
+const result = validatePlan(JSON.parse(planJson));
+if (!result.ok) {
+  throw new Error(formatValidationIssues(result.issues));
+}
+
+const customTheme: ThemeDefinition = customThemeJson;
+const html = renderPlan(normalizePlan(result.value), {
+  theme: customTheme,
+  navigation: true,
+});
+```
+
+The JSON subpath import requires `"resolveJsonModule": true`. For Node.js ESM
+consumers, set both `"module"` and `"moduleResolution"` to `"NodeNext"` in
+`tsconfig.json`.
+
+`renderPlan` validates custom theme objects at runtime before adding their semantic tokens to
+the generated CSS. The shipped [custom-theme.json](./custom-theme.json) shows the complete
+supported shape, including paired light and dark modes. It is also exported as
+`heple/custom-theme.json`.
 
 ## Development
 
@@ -53,6 +87,7 @@ pnpm install
 pnpm typecheck
 pnpm test
 pnpm build
+pnpm test:package
 pnpm dev fixtures/implementation-plan.json --no-open
 ```
 
