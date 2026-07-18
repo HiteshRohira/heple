@@ -56,12 +56,11 @@ pnpm build
 pnpm dev fixtures/implementation-plan.json --no-open
 ```
 
-One-off HTML design studies belong in the local `examples/` directory. The entire directory is intentionally gitignored so experimental pages cannot be committed accidentally; no generation or build step depends on it.
-
 ## Roadmap
 
 - [x] Accept custom theme definitions in the renderer
 - [ ] Benchmarks for token savings
 - [ ] Dashboard to configure org-wide theming
 - [ ] Publish to your team or the world
+- [ ] Review flow for published plans
 - [ ] Changelog for each plan

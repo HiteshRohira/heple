@@ -11,8 +11,7 @@ export async function selectTheme(
   const wasRaw = input.isRaw;
 
   output.write(
-    "Themes are inspired by tweakcn.\n" +
-      "Choose your default theme. Use ↑/↓ to move, Enter to save, Esc to cancel.\n\n",
+    "Choose your default theme. Use ↑/↓ to move, Enter to save, Esc to cancel.\n\n",
   );
 
   const render = () => {

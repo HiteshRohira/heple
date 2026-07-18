@@ -36,7 +36,7 @@ const monoFallback = 'ui-monospace, "SFMono-Regular", Consolas, monospace';
 
 const themes: Record<ThemeName, ThemeDefinition> = {
   default: {
-    description: "The balanced tweakcn default",
+    description: "The balanced default",
     radius: "0.625rem",
     fontSans: sansFallback,
     fontMono: monoFallback,

@@ -101,7 +101,6 @@ If you are a human, run heple example.
 
   it("prints available themes", async () => {
     const result = await runCli(["themes"]);
-    expect(result.stdout).toContain("Themes are inspired by tweakcn.");
     expect(result.stdout).toContain("default");
     expect(result.stdout).toContain("clay");
     expect(result.stdout).toContain("mono");

@@ -143,7 +143,7 @@ export function createProgram(
 
   program
     .command("themes")
-    .description("Choose the default renderer theme (inspired by tweakcn)")
+    .description("Choose the default renderer theme")
     .addArgument(
       new Argument("[theme]", "theme to set without the interactive selector")
         .choices([...THEME_NAMES]),
@@ -152,7 +152,7 @@ export function createProgram(
       const currentTheme = await getDefaultTheme();
       if (theme) {
         await setDefaultTheme(theme);
-        process.stdout.write(`Themes are inspired by tweakcn.\nDefault theme changed to ${theme}.\n`);
+        process.stdout.write(`Default theme changed to ${theme}.\n`);
         return;
       }
 
@@ -167,7 +167,7 @@ export function createProgram(
         return;
       }
 
-      process.stdout.write(`Themes are inspired by tweakcn.\nCurrent default: ${currentTheme}\n\n`);
+      process.stdout.write(`Current default: ${currentTheme}\n\n`);
       for (const theme of THEME_NAMES) {
         process.stdout.write(`${theme.padEnd(16)} ${themeDescriptions[theme]}\n`);
       }
