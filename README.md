@@ -23,6 +23,10 @@ npm install --global heple
 heple plan.json
 ```
 
+Install the agent skill with Codex's `$skill-installer` from
+`HiteshRohira/heple`, path `skills/heple`. For repository-wide guidance, merge
+the included `assets/AGENTS.md` snippet into the repository's `AGENTS.md`.
+
 Or run it without a global install:
 
 ```sh
@@ -38,6 +42,7 @@ heple plan.json --no-navigation
 heple example # render and open the element catalog
 heple validate plan.json # validate a plan without rendering it
 heple schema # print the canonical JSON Schema
+heple capabilities # print the machine-readable agent contract
 heple prompt # print plan-authoring instructions and a compact format example
 heple themes # choose and save the default theme
 ```
