@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { HtmlValidate } from "html-validate";
 import { beforeAll, describe, expect, it } from "vitest";
 import { AUTHORING_EXAMPLE, getModelPrompt } from "../src/prompt.js";
 import { normalizePlan } from "../src/normalize.js";
@@ -14,6 +15,24 @@ import { validatePlan } from "../src/validate.js";
 import type { ThemeDefinition } from "../src/themes.js";
 
 let plan: PlanDocument;
+const htmlValidator = new HtmlValidate({
+  extends: ["html-validate:recommended", "html-validate:a11y"],
+  rules: { "heading-level": "error" },
+});
+
+async function expectValidSemanticHtml(html: string): Promise<void> {
+  const report = await htmlValidator.validateString(html);
+  expect(
+    report.results.flatMap((result) =>
+      result.messages.map(({ ruleId, message, line, column }) => ({
+        ruleId,
+        message,
+        line,
+        column,
+      })),
+    ),
+  ).toEqual([]);
+}
 
 beforeAll(async () => {
   const input = JSON.parse(await readFile("fixtures/implementation-plan.json", "utf8"));
@@ -23,14 +42,22 @@ beforeAll(async () => {
 });
 
 describe("renderPlan", () => {
-  it("is deterministic for the same plan and theme", () => {
-    expect(renderPlan(plan, { theme: "default" })).toBe(renderPlan(plan, { theme: "default" }));
+  it("matches the representative golden and repeated renders byte-for-byte", async () => {
+    const rendered = renderPlan(structuredClone(plan), { theme: "default" });
+    const repeated = renderPlan(structuredClone(plan), { theme: "default" });
+    const golden = await readFile(
+      "tests/goldens/implementation-plan.default.html.golden",
+      "utf8",
+    );
+
+    expect(repeated).toBe(rendered);
+    expect(rendered).toBe(golden);
   });
 
-  it("produces self-contained semantic HTML", () => {
+  it("produces self-contained semantic HTML", async () => {
     const html = renderPlan(plan, { theme: "default" });
 
-    expect(html).toContain("<!doctype html>");
+    expect(html).toContain("<!DOCTYPE html>");
     expect(html).toContain('<nav class="toc"');
     expect(html).toContain("<details>");
     expect(html).toContain("<table>");
@@ -48,6 +75,7 @@ describe("renderPlan", () => {
     expect(html).not.toContain('class="facts"');
     expect(html).not.toMatch(/https:\/\/[^\"]+\.(css|js)/);
     expect(html).not.toMatch(/<dl|<dt|<dd/);
+    await expectValidSemanticHtml(html);
 
     const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(
       (match) => match[1] ?? "",
@@ -99,10 +127,38 @@ describe("renderPlan", () => {
     expect(renderPlan(plan, { theme: "mono" })).toContain("--sidebar-border: #ffffff;");
   });
 
-  it("renders a custom theme definition without adding it to the built-in theme list", async () => {
-    const customTheme = JSON.parse(
-      await readFile("fixtures/custom-theme.json", "utf8"),
-    ) as ThemeDefinition;
+  it("renders a custom theme definition without adding it to the built-in theme list", () => {
+    const customTheme: ThemeDefinition = {
+      description: "Test theme",
+      radius: "0.5rem",
+      fontSans: "system-ui, sans-serif",
+      fontMono: "monospace",
+      shadow: "none",
+      light: {
+        background: "#f7f8fa",
+        foreground: "#121212",
+        surface: "#ffffff",
+        raised: "#eeeeee",
+        muted: "#666666",
+        border: "#dddddd",
+        accent: "#86a8c5",
+        accentForeground: "#000000",
+        accentSoft: "#e5edf4",
+        danger: "#b42318",
+      },
+      dark: {
+        background: "#121212",
+        foreground: "#f7f8fa",
+        surface: "#202020",
+        raised: "#2a2a2a",
+        muted: "#aaaaaa",
+        border: "#444444",
+        accent: "#86a8c5",
+        accentForeground: "#000000",
+        accentSoft: "#31404d",
+        danger: "#ff7b6b",
+      },
+    };
     const html = renderPlan(plan, { theme: customTheme });
 
     expect(html).toContain("--bg: #f7f8fa");
@@ -120,14 +176,128 @@ describe("renderPlan", () => {
   it("renders navigation by default and targets offset section containers", () => {
     const html = renderPlan(plan, { theme: "default" });
 
-    expect(html).toContain('<nav class="toc" aria-label="Plan sections" tabindex="0">');
+    expect(html).toContain('<nav class="toc" aria-label="Plan sections">');
     expect(html).toContain('class="toc-dots"');
-    expect(html).toContain('href="#section-1"');
+    expect(html).toContain('href="#section-1" data-fragment-link');
     expect(html).not.toContain('href="#section-1" target="_blank"');
     expect(html).toContain('<section class="section" id="section-1"');
     expect(html).toContain("scroll-margin-top: 28px");
     expect(html).toContain("padding: 6px 10px");
     expect(html).toContain("border-radius: var(--radius)");
+  });
+
+  it("uses document-local behavior for stable section fragments", () => {
+    const fragmentPlan: PlanDocument = {
+      version: "1",
+      title: "Link behavior",
+      blocks: [
+        {
+          type: "paragraph",
+          content: [
+            { type: "link", text: "Jump", href: "#section-2" },
+            { type: "link", text: "External", href: "https://example.com" },
+          ],
+        },
+        {
+          type: "section",
+          title: "Stable target",
+          blocks: [
+            {
+              type: "paragraph",
+              content: [{ type: "text", text: "Target content" }],
+            },
+          ],
+        },
+      ],
+    };
+    const html = renderPlan(fragmentPlan, { theme: "default" });
+
+    expect(html).toContain('<a href="#section-2" data-fragment-link>Jump</a>');
+    expect(html).toContain(
+      '<a href="https://example.com" target="_blank" rel="noopener noreferrer">External</a>',
+    );
+    expect(html).toContain('<section class="section" id="section-2"');
+  });
+
+  it("reveals fragment targets inside closed details", () => {
+    const hiddenSectionPlan: PlanDocument = {
+      version: "1",
+      blocks: [
+        {
+          type: "details",
+          summary: "Closed",
+          blocks: [
+            {
+              type: "section",
+              title: "Hidden section",
+              blocks: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "Hidden content" }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    const html = renderPlan(hiddenSectionPlan, { theme: "default" });
+
+    expect(html).toContain('href="#section-1-1" data-fragment-link');
+    expect(html).toContain('<section class="section" id="section-1-1"');
+    expect(html).toContain(
+      "if (ancestor instanceof HTMLDetailsElement) ancestor.open = true;",
+    );
+    expect(html).toContain("let clickedFragmentHash = \"\";");
+    expect(html).toContain(
+      "const clicked = clickedFragmentHash === window.location.hash;",
+    );
+    expect(html).toContain("if (target && !clicked) {");
+    expect(html).toContain('window.addEventListener("hashchange"');
+    expect(html).toContain("const initialTarget = revealFragment(window.location.hash);");
+  });
+
+  it("keeps heading levels sequential with or without a document title", async () => {
+    const nestedBlocks: PlanDocument["blocks"] = [
+      {
+        type: "section",
+        title: "Top section",
+        blocks: [
+          {
+            type: "section",
+            title: "Nested section",
+            blocks: [
+              {
+                type: "steps",
+                items: [{ title: "List item title" }],
+              },
+            ],
+          },
+        ],
+      },
+    ];
+    const titled = renderPlan(
+      { version: "1", title: "Document title", blocks: nestedBlocks },
+      { theme: "default" },
+    );
+    const untitled = renderPlan(
+      { version: "1", summary: "Summary only", blocks: nestedBlocks },
+      { theme: "default" },
+    );
+
+    expect(titled).toContain("<h1>Document title</h1>");
+    expect(titled).toContain('<h2 class="section-title"');
+    expect(titled).toContain('<h3 class="section-title"');
+    expect(untitled).toContain('<h1 class="section-title"');
+    expect(untitled).toContain('<h2 class="section-title"');
+    expect(untitled).not.toContain("<h3>List item title");
+    expect(untitled).toContain('<strong class="step-title">List item title ');
+    expect(untitled).toContain(
+      ".section > .section-title { margin: 0 0 18px;",
+    );
+    expect(untitled).not.toContain("main > .section > .section-title");
+    await expectValidSemanticHtml(titled);
+    await expectValidSemanticHtml(untitled);
   });
 
   it("omits navigation when disabled", () => {
